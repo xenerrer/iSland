@@ -1,0 +1,53 @@
+iSland — first launch
+=====================
+
+1. Drag iSland onto the Applications folder, then open it from there.
+
+2. macOS will say it cannot verify iSland. That is expected: this build is not
+   notarized by Apple (notarization needs a paid Apple Developer account).
+   Open  System Settings > Privacy & Security,  scroll to the bottom and click
+   "Open Anyway". You only have to do this once.
+
+   Prefer the Terminal?  This does the same thing:
+       xattr -dr com.apple.quarantine /Applications/iSland.app
+
+3. Click the ✻ in the menu bar and choose "Install Claude Code hooks...".
+   It tells you exactly what will change in ~/.claude/settings.json and saves a
+   backup of the file first. Then start a new Claude Code session.
+
+What iSland does
+   It lives in your MacBook's notch. It shows what your Claude Code sessions are
+   doing, and when one needs your permission you can allow or deny it right there
+   (or with Option-Command-Y / Option-Command-N) without switching windows.
+   If iSland is not running, Claude Code behaves exactly as it always did.
+
+Uninstall
+   Click the ✻ > "Remove Claude Code hooks...", then quit iSland and drag it to the Trash.
+
+----------------------------------------------------------------------------------------
+
+iSland — primeira abertura
+==========================
+
+1. Arraste o iSland para a pasta Aplicativos e abra por lá.
+
+2. O macOS vai dizer que não consegue verificar o iSland. É esperado: esta versão
+   não é notarizada pela Apple (a notarização exige uma conta de desenvolvedor paga).
+   Abra  Ajustes do Sistema > Privacidade e Segurança,  role até o fim e clique em
+   "Abrir Mesmo Assim". Só é preciso fazer isso uma vez.
+
+   Prefere o Terminal?  Isto faz a mesma coisa:
+       xattr -dr com.apple.quarantine /Applications/iSland.app
+
+3. Clique no ✻ da barra de menus e escolha "Install Claude Code hooks...".
+   Ele mostra exatamente o que vai mudar em ~/.claude/settings.json e guarda um
+   backup do arquivo antes. Depois, abra uma nova sessão do Claude Code.
+
+O que o iSland faz
+   Ele vive no notch do MacBook. Mostra o que as suas sessões do Claude Code estão
+   fazendo e, quando uma precisa de permissão, você libera ou nega ali mesmo
+   (ou com Option-Command-Y / Option-Command-N) sem trocar de janela.
+   Se o iSland não estiver aberto, o Claude Code funciona exatamente como sempre.
+
+Desinstalar
+   Clique no ✻ > "Remove Claude Code hooks...", feche o iSland e arraste-o para o Lixo.
