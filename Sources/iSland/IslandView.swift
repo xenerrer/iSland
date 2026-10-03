@@ -28,6 +28,12 @@ struct IslandView: View {
     private var open: Bool { store.isOpen(on: display) }
     private var presence: WidgetPresence { widgets.presence }
     private var size: CGSize { layout.size(for: store, widgets: presence, display: display) }
+    /// The width the open content is laid out at, whatever the container is doing: it stays put while the container grows or
+    /// shrinks around it (the shape clips it), so nothing in it reflows or travels sideways during the animation.
+    private var contentWidth: CGFloat {
+        layout.size(open: true, sessions: store.sessions.count, request: store.requests.first?.prompt, widgets: presence,
+                    closedStatus: false, mode: store.mode).width
+    }
     /// Glass only when open: the closed pill stays black so it fuses with the hardware notch.
     private var usesGlass: Bool { open && appearance.style != .solid && !appearance.reduceTransparency }
     private var shape: NotchShape { NotchShape(topRadius: open ? 14 : IslandLayout.closedEar, bottomRadius: open ? 26 : 12) }
@@ -139,10 +145,7 @@ struct IslandView: View {
             .padding(.top, IslandLayout.topGap)
             .padding(.bottom, IslandLayout.bottomPadding)
         }
-        .frame(width: size.width, alignment: .top)
-        // The content is laid out at the island's final width and revealed by the growing shape; if its width followed the
-        // animation, text would reflow and cards would stretch in from the sides on every frame.
-        .animation(nil, value: size)
+        .frame(width: contentWidth, alignment: .top)
         .transition(Motion.content(appearance.motionStyle))
     }
 
@@ -158,10 +161,7 @@ struct IslandView: View {
             .padding(.top, IslandLayout.topGap)
             .padding(.bottom, IslandLayout.bottomPadding)
         }
-        .frame(width: size.width, alignment: .top)
-        // The content is laid out at the island's final width and revealed by the growing shape; if its width followed the
-        // animation, text would reflow and cards would stretch in from the sides on every frame.
-        .animation(nil, value: size)
+        .frame(width: contentWidth, alignment: .top)
         .transition(Motion.content(appearance.motionStyle))
     }
 
@@ -178,10 +178,7 @@ struct IslandView: View {
             .padding(.top, IslandLayout.topGap)
             .padding(.bottom, IslandLayout.bottomPadding)
         }
-        .frame(width: size.width, alignment: .top)
-        // The content is laid out at the island's final width and revealed by the growing shape; if its width followed the
-        // animation, text would reflow and cards would stretch in from the sides on every frame.
-        .animation(nil, value: size)
+        .frame(width: contentWidth, alignment: .top)
         .transition(Motion.content(appearance.motionStyle))
     }
 
@@ -230,16 +227,13 @@ struct IslandView: View {
             .padding(.top, IslandLayout.topGap)
             .padding(.bottom, IslandLayout.bottomPadding)
         }
-        .frame(width: size.width, alignment: .top)
-        // The content is laid out at the island's final width and revealed by the growing shape; if its width followed the
-        // animation, text would reflow and cards would stretch in from the sides on every frame.
-        .animation(nil, value: size)
+        .frame(width: contentWidth, alignment: .top)
         .transition(Motion.content(appearance.motionStyle))
     }
 
     /// The strip beside the physical notch: overall status on the left, session count and the settings gear on the right.
     private var header: some View {
-        let wing = (size.width - layout.notch.width) / 2
+        let wing = (contentWidth - layout.notch.width) / 2
         return HStack(spacing: 0) {
             HStack(spacing: 6) {
                 if store.overall != .idle { StatusGlyph(state: store.overall, agent: store.workingAgent) } // at rest, the words are enough
