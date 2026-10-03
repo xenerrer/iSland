@@ -35,7 +35,7 @@ struct IslandView: View {
 
     /// Without a hardware notch, the collapsed pill disappears while it has nothing to report.
     private var hidesClosedPill: Bool {
-        !open && !IslandLayout.drawsClosedPill(hasHardwareNotch: layout.hasHardwareNotch, items: pillItems)
+        !open && !IslandLayout.drawsClosedPill(hasHardwareNotch: layout.hasHardwareNotch, alwaysDraws: layout.alwaysDrawsPill, items: pillItems)
     }
 
     /// What the collapsed pill shows; nothing while a full-screen video is playing.
@@ -53,11 +53,11 @@ struct IslandView: View {
             // close. The glass stays in the view tree (a view that leaves with a transition is frozen at its old size and
             // would hang there as an empty box) and only its opacity moves.
             shape.fill(Color.black).opacity(usesGlass || hidesClosedPill ? 0 : 1)
-                .animation(.easeOut(duration: 0.2).delay(open ? 0 : Motion.glassLeaves), value: usesGlass)
+                .animation(.easeOut(duration: open ? 0.3 : 0.2).delay(open ? Motion.glassArrives : Motion.glassLeaves), value: usesGlass)
             if appearance.style != .solid && !appearance.reduceTransparency && store.glassDisplays.contains(display) {
                 GlassBackdrop(shape: shape, style: appearance.style)
                     .opacity(open ? 1 : 0)
-                    .animation(.easeOut(duration: open ? 0.15 : 0.2).delay(open ? 0 : Motion.glassLeaves), value: open)
+                    .animation(.easeOut(duration: open ? 0.3 : 0.2).delay(open ? Motion.glassArrives : Motion.glassLeaves), value: open)
             }
             Group {
                 if open && store.mirrorOn && store.requests.isEmpty {

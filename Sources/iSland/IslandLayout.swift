@@ -43,6 +43,8 @@ enum PillItem: Equatable {
 struct IslandLayout {
     let notch: CGSize
     var hasHardwareNotch = true
+    /// A display without a notch next to one that has it: the pill is drawn all the time, a virtual notch to point the pointer at.
+    var alwaysDrawsPill = false
 
     static let openWidth: CGFloat = 440
     /// A line of text: "No active agents", "+3 more".
@@ -98,8 +100,8 @@ struct IslandLayout {
 
     /// Whether the collapsed pill is drawn at all. Over a hardware notch it always is (it fuses with it); with no notch it
     /// would be a black block on the menu bar, so it only shows while it has something to say.
-    static func drawsClosedPill(hasHardwareNotch: Bool, items: [PillItem]) -> Bool {
-        hasHardwareNotch || !items.isEmpty
+    static func drawsClosedPill(hasHardwareNotch: Bool, alwaysDraws: Bool = false, items: [PillItem]) -> Bool {
+        hasHardwareNotch || alwaysDraws || !items.isEmpty
     }
 
     /// What the collapsed pill shows, in a fixed order.
@@ -221,13 +223,16 @@ enum Motion {
     static let closeHold = 0.1
     /// When the glass starts to dissolve after a close begins: the container has all but settled by then.
     static let glassLeaves = 0.25
+    /// When the glass starts to arrive on opening: the black shape has grown out of the notch first, then turns to glass.
+    static let glassArrives = 0.18
 
     static func content(_ style: MotionStyle) -> AnyTransition {
         switch style {
         case .smooth:
             .asymmetric(
-                insertion: AnyTransition.blur(7).combined(with: .scale(scale: 0.94, anchor: .top)).combined(with: .opacity)
-                    .animation(.smooth(duration: 0.34).delay(0.06)),
+                // No scale and no slide: the container grows out of the notch and the content simply clears up inside it.
+                insertion: AnyTransition.blur(6).combined(with: .opacity)
+                    .animation(.smooth(duration: 0.3).delay(0.14)),
                 removal: AnyTransition.opacity.animation(.easeOut(duration: 0.14)))
         case .bouncy:
             .scale(scale: 0.8, anchor: .top).combined(with: .opacity).animation(.smooth(duration: 0.35))

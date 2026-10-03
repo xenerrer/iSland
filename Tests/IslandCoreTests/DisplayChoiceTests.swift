@@ -2,10 +2,11 @@ import Testing
 @testable import IslandCore
 
 @Suite("Display choice") struct DisplayChoiceTests {
-    @Test func theMainDisplayIsTheDefault() {
-        #expect(DisplayChoice(raw: nil) == .main)
-        #expect(DisplayChoice(raw: "garbage") == .main)
-        #expect(DisplayChoice(raw: "id:abc") == .main)
+    @Test func everyDisplayIsTheDefault() {
+        #expect(DisplayChoice(raw: nil) == .all)
+        #expect(DisplayChoice(raw: "garbage") == .all)
+        #expect(DisplayChoice(raw: "id:abc") == .all)
+        #expect(DisplayChoice(raw: "main") == .main)
         #expect(DisplayChoice.main.targets(available: [10, 20]) == [10])
     }
 

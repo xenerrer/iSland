@@ -297,7 +297,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func layoutFor(_ screen: NSScreen) -> IslandLayout {
-        CommandLine.arguments.contains("--no-notch") ? IslandLayout(notch: CGSize(width: 150, height: 24), hasHardwareNotch: false) : Self.layout(for: screen)
+        var layout = CommandLine.arguments.contains("--no-notch") ? IslandLayout(notch: CGSize(width: 150, height: 24), hasHardwareNotch: false) : Self.layout(for: screen)
+        // Beside a screen that has a notch, one without gets a virtual one, so there is something to point at.
+        if !layout.hasHardwareNotch, NSScreen.screens.count > 1, NSScreen.screens.contains(where: { $0.safeAreaInsets.top > 0 }) { layout.alwaysDrawsPill = true }
+        return layout
     }
 
     /// Puts an island on every display the setting asks for, and takes them off the others. Runs at launch, when a display

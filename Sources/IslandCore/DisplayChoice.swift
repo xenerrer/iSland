@@ -1,7 +1,8 @@
 import Foundation
 
-/// Which displays carry an island. The default follows the main display (the one System Settings > Displays marks with the
-/// menu bar), so plugging in a monitor changes nothing; the user can ask for every display, or one in particular.
+/// Which displays carry an island. The default is every display, so plugging in a monitor
+/// shows the island there too; the user can ask for the main display only (the one System Settings > Displays marks with
+/// the menu bar), or one in particular.
 public enum DisplayChoice: Equatable, Sendable {
     case main
     case all
@@ -11,8 +12,9 @@ public enum DisplayChoice: Equatable, Sendable {
         switch raw {
         case "all": self = .all
         case let r? where r.hasPrefix("id:"):
-            if let id = UInt32(r.dropFirst(3)) { self = .specific(id) } else { self = .main }
-        default: self = .main
+            if let id = UInt32(r.dropFirst(3)) { self = .specific(id) } else { self = .all }
+        case "main": self = .main
+        default: self = .all
         }
     }
 
