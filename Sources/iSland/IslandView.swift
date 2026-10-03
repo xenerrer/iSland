@@ -33,6 +33,11 @@ struct IslandView: View {
     private var shape: NotchShape { NotchShape(topRadius: open ? 14 : IslandLayout.closedEar, bottomRadius: open ? 26 : 12) }
     private var motion: Animation { appearance.reduceMotion ? .easeOut(duration: 0.12) : (open ? Motion.open(appearance.motionStyle) : Motion.close(appearance.motionStyle)) }
 
+    private var widthMotion: Animation {
+        if appearance.reduceMotion { return .easeOut(duration: 0.12) }
+        return open ? .easeOut(duration: 0.2) : .easeIn(duration: 0.16).delay(Motion.closeHold + 0.2)
+    }
+
     /// Without a hardware notch, the collapsed pill disappears while it has nothing to report.
     private var hidesClosedPill: Bool {
         !open && !IslandLayout.drawsClosedPill(hasHardwareNotch: layout.hasHardwareNotch, alwaysDraws: layout.alwaysDrawsPill, items: pillItems)
@@ -77,10 +82,14 @@ struct IslandView: View {
         }
         .onAppear { store.openStateChanged(open, on: display) }
         .onChange(of: open) { _, now in store.openStateChanged(now, on: display) }
-        .frame(width: size.width, height: size.height)
+        // Growth is vertical: the island drops from the notch and lifts back into it. Its width settles quickly (opening) or
+        // late (closing) so no edge is seen travelling sideways while the height does the moving.
+        .frame(width: size.width)
+        .animation(widthMotion, value: size.width)
+        .frame(height: size.height)
         .scaleEffect(swells ? 1.07 : 1, anchor: .top)
         .animation(.spring(duration: 0.3, bounce: 0.35), value: swells)
-        .animation(motion, value: size)
+        .animation(motion, value: size.height)
     }
 
     // MARK: Closed
