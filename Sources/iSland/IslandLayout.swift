@@ -216,15 +216,16 @@ enum Motion {
         switch style {
         // Closing is in order: the content leaves first (`closeHold` is its fade), then the container shrinks, then the glass dissolves.
         case .smooth: .spring(duration: 0.34, bounce: 0).delay(closeHold)
-        case .bouncy: .spring(response: 0.45, dampingFraction: 1.0).delay(closeHold)
+        // boring.notch's own: one spring for the whole container, no hold, the content leaving at the same time.
+        case .bouncy: .spring(response: 0.45, dampingFraction: 1.0)
         }
     }
 
     static let closeHold = 0.1
     /// When the glass starts to dissolve after a close begins: the container has all but settled by then.
-    static let glassLeaves = 0.25
+    static let glassLeaves = 0.15
     /// When the glass starts to arrive on opening: the black shape has grown out of the notch first, then turns to glass.
-    static let glassArrives = 0.18
+    static let glassArrives = 0.05
 
     static func content(_ style: MotionStyle) -> AnyTransition {
         switch style {

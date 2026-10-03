@@ -52,7 +52,7 @@ final class Appearance: ObservableObject {
     }
     /// How the island opens and closes.
     @Published var motionStyle: MotionStyle {
-        didSet { UserDefaults.standard.set(motionStyle.rawValue, forKey: "motionStyle") }
+        didSet { UserDefaults.standard.set(motionStyle.rawValue, forKey: "motionStyleV2") }
     }
     /// Step aside while another app shows a video in full screen.
     /// Which displays carry an island (see DisplayChoice): the main display by default.
@@ -83,7 +83,7 @@ final class Appearance: ObservableObject {
         showCalendar = UserDefaults.standard.object(forKey: "showCalendar") as? Bool ?? true
         displayChoice = DisplayChoice(raw: UserDefaults.standard.string(forKey: "displayChoice"))
         hideInFullscreenVideo = UserDefaults.standard.object(forKey: "hideInFullscreenVideo") as? Bool ?? true
-        motionStyle = UserDefaults.standard.string(forKey: "motionStyle").flatMap(MotionStyle.init(rawValue:)) ?? .smooth
+        motionStyle = UserDefaults.standard.string(forKey: "motionStyleV2").flatMap(MotionStyle.init(rawValue:)) ?? .bouncy
         hoverDelay = min(2, max(0, UserDefaults.standard.object(forKey: "hoverDelay") as? Double ?? 0.12))
         showMenuBarIcon = UserDefaults.standard.bool(forKey: "showMenuBarIcon")
         let workspace = NSWorkspace.shared
