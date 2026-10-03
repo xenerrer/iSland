@@ -59,11 +59,11 @@ struct IslandView: View {
             // close. The glass stays in the view tree (a view that leaves with a transition is frozen at its old size and
             // would hang there as an empty box) and only its opacity moves.
             shape.fill(Color.black).opacity(usesGlass || hidesClosedPill ? 0 : 1)
-                .animation(.easeOut(duration: open ? 0.3 : 0.2).delay(open ? Motion.glassArrives : Motion.glassLeaves), value: usesGlass)
+                .animation(.easeOut(duration: open ? 0.25 : 0.08).delay(open ? Motion.glassArrives : Motion.glassLeaves), value: usesGlass)
             if appearance.style != .solid && !appearance.reduceTransparency && store.glassDisplays.contains(display) {
                 GlassBackdrop(shape: shape, style: appearance.style)
                     .opacity(open ? 1 : 0)
-                    .animation(.easeOut(duration: open ? 0.3 : 0.2).delay(open ? Motion.glassArrives : Motion.glassLeaves), value: open)
+                    .animation(.easeOut(duration: open ? 0.25 : 0.08).delay(open ? Motion.glassArrives : Motion.glassLeaves), value: open)
             }
             Group {
                 if open && store.mirrorOn && store.requests.isEmpty {
@@ -76,7 +76,7 @@ struct IslandView: View {
                     openContent
                 } else if !pillItems.isEmpty {
                     closedIndicators
-                        .transition(.opacity.animation(.easeIn(duration: 0.15).delay(Motion.glassLeaves))) // once the pill is pill-sized
+                        .transition(.opacity.animation(.easeIn(duration: 0.15).delay(0.15))) // once the pill is pill-sized
                 }
             }
             .clipShape(shape)

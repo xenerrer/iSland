@@ -505,7 +505,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             try? await Task.sleep(for: .seconds(1.8))
             store.expanded = opening
             let start = CACurrentMediaTime()
-            let moments = [30, 70, 110, 150, 200, 260, 350, 800]
+            let moments = opening ? [30, 70, 110, 150, 200, 260, 350, 800] : [0, 20, 45, 80, 120, 170, 240, 400]
             for milliseconds in moments {
                 DispatchQueue.global(qos: .userInteractive).asyncAfter(deadline: .now() + Double(milliseconds) / 1000) {
                     let taken = CACurrentMediaTime() - start

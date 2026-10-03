@@ -223,9 +223,9 @@ enum Motion {
 
     static let closeHold = 0.1
     /// When the glass starts to dissolve after a close begins: the container has all but settled by then.
-    static let glassLeaves = 0.15
+    static let glassLeaves = 0.0
     /// When the glass starts to arrive on opening: the black shape has grown out of the notch first, then turns to glass.
-    static let glassArrives = 0.05
+    static let glassArrives = 0.1
 
     static func content(_ style: MotionStyle) -> AnyTransition {
         switch style {
@@ -236,7 +236,9 @@ enum Motion {
                     .animation(.smooth(duration: 0.3).delay(0.14)),
                 removal: AnyTransition.opacity.animation(.easeOut(duration: 0.14)))
         case .bouncy:
-            .scale(scale: 0.8, anchor: .top).combined(with: .opacity).animation(.smooth(duration: 0.35))
+            // Arrives as boring.notch's does; leaves quickly, so no ghost of it is left in the shrinking pill.
+            .asymmetric(insertion: .scale(scale: 0.8, anchor: .top).combined(with: .opacity).animation(.smooth(duration: 0.35)),
+                        removal: .opacity.animation(.easeOut(duration: 0.1)))
         }
     }
 }
