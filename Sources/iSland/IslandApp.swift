@@ -142,7 +142,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // `--close-frames <dir>`: capture the real island at successive moments of closing, to see what is left behind.
         if let i = args.firstIndex(of: "--close-frames"), i + 1 < args.count {
-            runCloseFrames(into: args[i + 1], screen: screen)
+            runCloseFrames(into: args[i + 1], screen: screen, opening: args.contains("--opening"))
             return
         }
 
@@ -493,19 +493,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func runCloseFrames(into directory: String, screen: NSScreen) {
+    private func runCloseFrames(into directory: String, screen: NSScreen, opening: Bool = false) {
         try? FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
         let frame = panelFrame(on: screen)
         let backdrop = SelfShot.backdropWindow(frame: frame, kind: "busy", notchHeight: layout.notch.height)
         createPanel(on: screen)
-        seedDemo(expanded: true, withRequest: false)
+        seedDemo(expanded: !opening, withRequest: false)
         let rect = SelfShot.globalRect(frame)
         // The captures happen on a background queue: taking one blocks its thread, and the main thread is the one animating.
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(1.8))
-            store.expanded = false
+            store.expanded = opening
             let start = CACurrentMediaTime()
-            let moments = [30, 90, 150, 220, 300, 400, 550, 800]
+            let moments = [30, 70, 110, 150, 200, 260, 350, 800]
             for milliseconds in moments {
                 DispatchQueue.global(qos: .userInteractive).asyncAfter(deadline: .now() + Double(milliseconds) / 1000) {
                     let taken = CACurrentMediaTime() - start

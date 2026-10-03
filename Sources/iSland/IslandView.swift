@@ -140,6 +140,9 @@ struct IslandView: View {
             .padding(.bottom, IslandLayout.bottomPadding)
         }
         .frame(width: size.width, alignment: .top)
+        // The content is laid out at the island's final width and revealed by the growing shape; if its width followed the
+        // animation, text would reflow and cards would stretch in from the sides on every frame.
+        .animation(nil, value: size)
         .transition(Motion.content(appearance.motionStyle))
     }
 
@@ -156,6 +159,9 @@ struct IslandView: View {
             .padding(.bottom, IslandLayout.bottomPadding)
         }
         .frame(width: size.width, alignment: .top)
+        // The content is laid out at the island's final width and revealed by the growing shape; if its width followed the
+        // animation, text would reflow and cards would stretch in from the sides on every frame.
+        .animation(nil, value: size)
         .transition(Motion.content(appearance.motionStyle))
     }
 
@@ -173,6 +179,9 @@ struct IslandView: View {
             .padding(.bottom, IslandLayout.bottomPadding)
         }
         .frame(width: size.width, alignment: .top)
+        // The content is laid out at the island's final width and revealed by the growing shape; if its width followed the
+        // animation, text would reflow and cards would stretch in from the sides on every frame.
+        .animation(nil, value: size)
         .transition(Motion.content(appearance.motionStyle))
     }
 
@@ -222,6 +231,9 @@ struct IslandView: View {
             .padding(.bottom, IslandLayout.bottomPadding)
         }
         .frame(width: size.width, alignment: .top)
+        // The content is laid out at the island's final width and revealed by the growing shape; if its width followed the
+        // animation, text would reflow and cards would stretch in from the sides on every frame.
+        .animation(nil, value: size)
         .transition(Motion.content(appearance.motionStyle))
     }
 
