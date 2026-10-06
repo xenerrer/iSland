@@ -51,6 +51,8 @@ struct IslandLayout {
     static let rowHeight: CGFloat = 28
     /// A session: the chat's name over the folder it works in.
     static let sessionRowHeight: CGFloat = 38
+    /// The most room a row gives the status on its right ("Run: npm test? "): longer texts are cut in the middle.
+    static let detailMaxWidth: CGFloat = 170
     static let rowSpacing: CGFloat = 6
     static let maxRows = 5
     /// Extra room on each side of the physical notch where status indicators live when collapsed (only while there is
@@ -237,10 +239,16 @@ enum Motion {
                 removal: AnyTransition.opacity.animation(.easeOut(duration: 0.14)))
         case .bouncy:
             // Arrives as boring.notch's does; leaves quickly, so no ghost of it is left in the shrinking pill.
-            .asymmetric(insertion: .scale(scale: 0.8, anchor: .top).combined(with: .opacity).animation(.smooth(duration: 0.35)),
+            .asymmetric(insertion: AnyTransition.squash(0.8).combined(with: .opacity).animation(.smooth(duration: 0.35)),
                         removal: .opacity.animation(.easeOut(duration: 0.1)))
         }
     }
+}
+
+private struct VerticalSquash: ViewModifier {
+    let factor: CGFloat
+    /// Only the height scales, about the top edge: the content drops out of the notch and nothing moves sideways.
+    func body(content: Content) -> some View { content.scaleEffect(x: 1, y: factor, anchor: .top) }
 }
 
 private struct BlurAmount: ViewModifier {
@@ -249,6 +257,10 @@ private struct BlurAmount: ViewModifier {
 }
 
 extension AnyTransition {
+    static func squash(_ factor: CGFloat) -> AnyTransition {
+        .modifier(active: VerticalSquash(factor: factor), identity: VerticalSquash(factor: 1))
+    }
+
     /// Arrives out of a blur that clears.
     static func blur(_ radius: CGFloat) -> AnyTransition {
         .modifier(active: BlurAmount(radius: radius), identity: BlurAmount(radius: 0))

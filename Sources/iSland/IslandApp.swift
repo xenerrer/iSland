@@ -337,6 +337,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             store.focusDisplay = first
         }
         NSLog("iSland: %d island(s) on %d display(s)", islands.count, screens.count)
+        IslandLog.write("display", "islands=\(islands.count) displays=\(screens.count) choice=\(appearance.displayChoice.raw) focus=\(store.focusDisplay)")
     }
 
     private func screenChanged() {

@@ -102,6 +102,7 @@ final class HoverController {
             // The pointer may have moved again while we waited.
             guard hitRect.contains(NSEvent.mouseLocation) == opening, (store.expanded && store.focusDisplay == display) != opening else { return }
             NSLog("iSland: pointer %@ the island", opening ? "entered" : "left")
+            IslandLog.write("island", "\(opening ? "open" : "close") display=\(display) sessions=\(store.sessions.count) requests=\(store.requests.count) mode=\(store.mode)")
             if opening { store.focusDisplay = display } // the pointer chooses which display's island is the open one
             store.expanded = opening // the view animates the size change itself
         }

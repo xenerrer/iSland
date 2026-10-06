@@ -658,3 +658,22 @@ import Testing
         #expect(layout.size(for: store, widgets: widgets, display: 2).width > 186)
     }
 }
+
+@MainActor
+@Suite("Long status texts") struct LongStatusTests {
+    let t0 = Date(timeIntervalSince1970: 1_000)
+
+    @Test func anMcpToolWithALongServerIdShowsOnlyTheTool() {
+        let store = SessionStore()
+        store.apply(AgentEvent(agent: "claude", sessionId: "s1", cwd: "/w", event: "PostToolUse",
+                               tool: "mcp__4380726e-b365-47b2-8034-d111417648ac__search_threads", message: nil, timestamp: t0))
+        #expect(store.sessions["s1"]?.detail == "search_threads done")
+    }
+
+    @Test func aHugeMessageIsCutToWhatARowCanShow() {
+        let store = SessionStore()
+        store.apply(AgentEvent(agent: "claude", sessionId: "s2", cwd: "/w", event: "Notification", tool: nil,
+                               message: String(repeating: "m", count: 400), kind: "permission_prompt", timestamp: t0))
+        #expect((store.sessions["s2"]?.detail.count ?? 0) <= 48)
+    }
+}

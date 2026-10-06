@@ -229,10 +229,10 @@ final class SessionStore: ObservableObject {
         case "UserPromptSubmit":
             s.state = .working; s.detail = "Thinking…"; s.turnStartedAt = e.timestamp; s.lastTurnSeconds = nil
         case "PreToolUse":
-            s.state = .working; s.detail = e.tool ?? "Working"
+            s.state = .working; s.detail = e.tool.map(ToolName.display) ?? "Working"
             if s.turnStartedAt == nil { s.turnStartedAt = e.timestamp }
         case "PostToolUse":
-            s.state = .working; s.detail = e.tool.map { "\($0) done" } ?? "Working"
+            s.state = .working; s.detail = e.tool.map { "\(ToolName.display($0)) done" } ?? "Working"
             if s.turnStartedAt == nil { s.turnStartedAt = e.timestamp }
         case "PermissionRequest":
             s.state = .needsAttention
@@ -240,20 +240,24 @@ final class SessionStore: ObservableObject {
             switch e.tool {
             case "AskUserQuestion": s.detail = "Asking you a question"
             case "ExitPlanMode": s.detail = "Plan ready to approve"
-            default: s.detail = e.permission?.title ?? e.message ?? "Needs approval"
+            default: s.detail = ToolName.clipped(e.permission?.title ?? e.message ?? "Needs approval", to: 48)
             }
         case "Notification":
             switch e.kind {
             case "idle_prompt": s.state = .idle; s.detail = "Waiting for your input" // finished, not an alarm
             case "agent_completed": s.state = .idle; s.detail = "Done"
             case "auth_success": break
-            default: s.state = .needsAttention; s.detail = e.message ?? "Needs you" // permission_prompt, elicitation_dialog...
+            default: s.state = .needsAttention; s.detail = ToolName.clipped(e.message ?? "Needs you", to: 48) // permission_prompt, elicitation_dialog...
             }
         default: break
         }
         s.updated = e.timestamp
         sessions[e.sessionId] = s
         if finishedTurn { onTurnFinished?(s) }
+        // A status much longer than a row can show: it is cut, and noted here so a layout glitch can be traced to it.
+        if e.tool.map({ ToolName.display($0).hasSuffix("…") }) == true || e.message.map({ $0.count > 48 }) == true {
+            IslandLog.write("anomaly", "long status text cut: tool=\(e.tool?.count ?? 0) chars, message=\(e.message?.count ?? 0) chars, event=\(e.event)")
+        }
         noteFinish(after: e)
     }
 

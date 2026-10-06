@@ -76,7 +76,8 @@ struct IslandView: View {
                     openContent
                 } else if !pillItems.isEmpty {
                     closedIndicators
-                        .transition(.opacity.animation(.easeIn(duration: 0.15).delay(0.15))) // once the pill is pill-sized
+                        .transition(.asymmetric(insertion: .opacity.animation(.easeIn(duration: 0.15).delay(0.25)), // once the pill is pill-sized
+                                                removal: .opacity.animation(.easeOut(duration: 0.06)))) // gone before the island grows around it // once the pill is pill-sized
                 }
             }
             .clipShape(shape)
@@ -450,7 +451,10 @@ struct SessionRow: View {
                 .font(.system(size: 11.5))
                 .foregroundStyle(Color.white.opacity(0.6))
                 .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false) // the name gives way, never the status
+                .truncationMode(.middle)
+                // The name gives way, never the status; but the status itself has a ceiling, or one long text would make the
+                // row wider than the island and push every row out of it on both sides.
+                .frame(maxWidth: IslandLayout.detailMaxWidth, alignment: .trailing)
                 .layoutPriority(2)
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
