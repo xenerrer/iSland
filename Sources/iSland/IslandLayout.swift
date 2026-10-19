@@ -40,7 +40,7 @@ enum PillItem: Equatable {
 
 /// Single source of truth for the island's size, shared by the view and the pointer tracking.
 /// Every number here has a twin in IslandView; change them together.
-struct IslandLayout {
+struct IslandLayout: Equatable {
     let notch: CGSize
     var hasHardwareNotch = true
     /// A display without a notch next to one that has it: the pill is drawn all the time, a virtual notch to point the pointer at.
@@ -228,27 +228,28 @@ enum Motion {
     static let glassLeaves = 0.0
     /// When the glass starts to arrive on opening: the black shape has grown out of the notch first, then turns to glass.
     static let glassArrives = 0.1
+    /// A glass inserted together with the toggle fades in only after the container has all but settled.
+    static let glassInserted = 0.3
 
+    /// The content drops in from the top, behind the growing shape, and leaves quickly; it never moves sideways.
     static func content(_ style: MotionStyle) -> AnyTransition {
         switch style {
         case .smooth:
             .asymmetric(
-                // No scale and no slide: the container grows out of the notch and the content simply clears up inside it.
-                insertion: AnyTransition.blur(6).combined(with: .opacity)
-                    .animation(.smooth(duration: 0.3).delay(0.14)),
+                insertion: AnyTransition.blur(6).combined(with: .dropIn).combined(with: .opacity)
+                    .animation(.smooth(duration: 0.3).delay(0.18)),
                 removal: AnyTransition.opacity.animation(.easeOut(duration: 0.14)))
         case .bouncy:
-            // Arrives as boring.notch's does; leaves quickly, so no ghost of it is left in the shrinking pill.
-            .asymmetric(insertion: AnyTransition.squash(0.8).combined(with: .opacity).animation(.smooth(duration: 0.35)),
+            // boring.notch's timing (smooth 0.35 s, no delay); leaves in 0.1 s so no ghost of it is left in the shrinking pill.
+            .asymmetric(insertion: AnyTransition.dropIn.combined(with: .opacity).animation(.smooth(duration: 0.35)),
                         removal: .opacity.animation(.easeOut(duration: 0.1)))
         }
     }
 }
 
-private struct VerticalSquash: ViewModifier {
-    let factor: CGFloat
-    /// Only the height scales, about the top edge: the content drops out of the notch and nothing moves sideways.
-    func body(content: Content) -> some View { content.scaleEffect(x: 1, y: factor, anchor: .top) }
+private struct DropIn: ViewModifier {
+    let offset: CGFloat
+    func body(content: Content) -> some View { content.offset(y: offset) }
 }
 
 private struct BlurAmount: ViewModifier {
@@ -257,9 +258,8 @@ private struct BlurAmount: ViewModifier {
 }
 
 extension AnyTransition {
-    static func squash(_ factor: CGFloat) -> AnyTransition {
-        .modifier(active: VerticalSquash(factor: factor), identity: VerticalSquash(factor: 1))
-    }
+    /// Arrives from a little above, never from the sides.
+    static var dropIn: AnyTransition { .modifier(active: DropIn(offset: -14), identity: DropIn(offset: 0)) }
 
     /// Arrives out of a blur that clears.
     static func blur(_ radius: CGFloat) -> AnyTransition {

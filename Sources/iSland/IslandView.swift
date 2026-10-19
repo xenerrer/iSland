@@ -53,41 +53,65 @@ struct IslandView: View {
     /// The collapsed pill swells slightly while the pointer rests on it, before the island opens (Apple's way of saying "I felt that").
     private var swells: Bool { store.hoverDisplay == display && !open && !appearance.reduceMotion && !hidesClosedPill }
 
+    /// The fade between the black pill and the glass. It only ever animates opacity: each layer's size follows the container
+    /// spring through its own `.animation(motion, value: size)` placed under it (an animation modifier covers everything
+    /// beneath it, so sharing one with the fade would make the shape's size ease with the fade and slide off-centre).
+    private var fade: Animation { .easeOut(duration: open ? 0.25 : 0.08).delay(open ? Motion.glassArrives : Motion.glassLeaves) }
+
+    private var showsGlass: Bool {
+        appearance.style != .solid && !appearance.reduceTransparency && (open || store.glassDisplays.contains(display))
+    }
+
+    /// Everything is drawn on a stage as wide as the panel that never moves, centred on the notch. Each layer has its own
+    /// animated frame, and the content is only ever revealed through the growing shape: the island opens from the notch
+    /// downwards and closes back up into it, and nothing is drawn outside the shape.
     private var island: some View {
         ZStack(alignment: .top) {
-            // The black pill and the glass trade places once the container has mostly settled, not at the first instant of a
-            // close. The glass stays in the view tree (a view that leaves with a transition is frozen at its old size and
-            // would hang there as an empty box) and only its opacity moves.
-            shape.fill(Color.black).opacity(usesGlass || hidesClosedPill ? 0 : 1)
-                .animation(.easeOut(duration: open ? 0.25 : 0.08).delay(open ? Motion.glassArrives : Motion.glassLeaves), value: usesGlass)
-            if appearance.style != .solid && !appearance.reduceTransparency && store.glassDisplays.contains(display) {
+            shape.fill(Color.black)
+                .frame(width: size.width, height: size.height)
+                .animation(motion, value: size)
+                .opacity(usesGlass || hidesClosedPill ? 0 : 1)
+                .animation(fade, value: usesGlass)
+            if showsGlass {
                 GlassBackdrop(shape: shape, style: appearance.style)
+                    .frame(width: size.width, height: size.height)
+                    .animation(motion, value: size)
                     .opacity(open ? 1 : 0)
-                    .animation(.easeOut(duration: open ? 0.25 : 0.08).delay(open ? Motion.glassArrives : Motion.glassLeaves), value: open)
+                    .animation(fade, value: open)
+                    // A glass that is added with the toggle starts at its final size, so it waits for the container to get there.
+                    .transition(.opacity.animation(.easeOut(duration: 0.25).delay(Motion.glassInserted)))
             }
-            Group {
-                if open && store.mirrorOn && store.requests.isEmpty {
-                    mirrorContent
-                } else if open && store.newChatOn && store.requests.isEmpty {
-                    newChatContent
-                } else if open && store.pomodoroSetupOn && store.requests.isEmpty {
-                    pomodoroContent
-                } else if open {
-                    openContent
-                } else if !pillItems.isEmpty {
-                    closedIndicators
-                        .transition(.asymmetric(insertion: .opacity.animation(.easeIn(duration: 0.15).delay(0.25)), // once the pill is pill-sized
-                                                removal: .opacity.animation(.easeOut(duration: 0.06)))) // gone before the island grows around it // once the pill is pill-sized
+            ZStack(alignment: .top) {
+                Group {
+                    if open && store.mirrorOn && store.requests.isEmpty {
+                        mirrorContent
+                    } else if open && store.newChatOn && store.requests.isEmpty {
+                        newChatContent
+                    } else if open && store.pomodoroSetupOn && store.requests.isEmpty {
+                        pomodoroContent
+                    } else if open {
+                        openContent
+                    } else if !pillItems.isEmpty {
+                        closedIndicators
+                            .transition(.asymmetric(insertion: .opacity.animation(.easeIn(duration: 0.15).delay(0.25)), // once the pill is pill-sized
+                                                    removal: .opacity.animation(.easeOut(duration: 0.06)))) // gone before the island grows around it
+                    }
                 }
             }
-            .clipShape(shape)
+            .frame(maxWidth: .infinity, alignment: .top)
+            .mask(alignment: .top) {
+                shape.frame(width: size.width, height: size.height).animation(motion, value: size)
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .top)
         .onAppear { store.openStateChanged(open, on: display) }
         .onChange(of: open) { _, now in store.openStateChanged(now, on: display) }
-        .frame(width: size.width, height: size.height)
-        .scaleEffect(swells ? 1.07 : 1, anchor: .top)
-        .animation(.spring(duration: 0.3, bounce: 0.35), value: swells)
-        .animation(motion, value: size)
+        // The glass is ready before the pointer opens the island, so it never has to be inserted mid-animation.
+        .onChange(of: swells) { _, now in
+            if now { store.openStateChanged(true, on: display) } else if !open { store.openStateChanged(false, on: display) }
+        }
+        // The hover cue is a small dip of the pill: vertical only, and scoped to the scale so it can never drive the frames.
+        .animation(.spring(duration: 0.3, bounce: 0.35)) { $0.scaleEffect(x: 1, y: swells ? 1.15 : 1, anchor: .top) }
     }
 
     // MARK: Closed

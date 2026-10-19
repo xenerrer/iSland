@@ -22,6 +22,7 @@ final class Island {
     let display: CGDirectDisplayID
     let panel: IslandPanel
     var hover: HoverController?
+    var layout: IslandLayout?
     init(display: CGDirectDisplayID, panel: IslandPanel) {
         self.display = display
         self.panel = panel
@@ -314,8 +315,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let screen = screens.first(where: { $0.displayID == id }) else { continue }
             let layout = layoutFor(screen)
             if let island = islands.first(where: { $0.display == id }) {
-                island.panel.setFrame(panelFrame(on: screen), display: true)
-                installContent(in: island.panel, layout: layout, display: id)
+                // Only touch what really changed: re-creating the view mid-animation would throw its state away.
+                let frame = panelFrame(on: screen)
+                if island.panel.frame != frame { island.panel.setFrame(frame, display: true) }
+                if island.layout != layout {
+                    installContent(in: island.panel, layout: layout, display: id)
+                    island.layout = layout
+                }
                 island.hover?.update(layout: layout, screenFrame: screen.frame)
                 continue
             }
@@ -324,6 +330,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             configure(panel)
             installContent(in: panel, layout: layout, display: id)
             let island = Island(display: id, panel: panel)
+            island.layout = layout
             let hover = HoverController(store: store, widgets: widgets, layout: layout, screenFrame: screen.frame, display: id)
             hover.openDelay = appearance.hoverDelay
             hover.setInteractive = { [weak panel] interactive in panel?.ignoresMouseEvents = !interactive }
@@ -477,10 +484,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             try? await Task.sleep(for: .seconds(1.2))
             var opening: [Double] = [], closing: [Double] = []
             for _ in 0..<5 {
+                store.hoverDisplay = store.focusDisplay // what the pointer does first: the pill dips, then the island opens
+                try? await Task.sleep(for: .milliseconds(120))
                 var t0 = CACurrentMediaTime()
                 store.expanded = true
                 try? await Task.sleep(for: .seconds(1.0))
                 opening += meter.intervals(from: t0, to: t0 + 0.7)
+                store.hoverDisplay = nil
                 t0 = CACurrentMediaTime()
                 store.expanded = false
                 try? await Task.sleep(for: .seconds(1.0))
@@ -504,6 +514,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // The captures happen on a background queue: taking one blocks its thread, and the main thread is the one animating.
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(1.8))
+            if opening {
+                store.hoverDisplay = store.focusDisplay
+                try? await Task.sleep(for: .milliseconds(120))
+            } else {
+                store.hoverDisplay = nil
+            }
             store.expanded = opening
             let start = CACurrentMediaTime()
             let moments = opening ? [30, 70, 110, 150, 200, 260, 350, 800] : [0, 20, 45, 80, 120, 170, 240, 400]

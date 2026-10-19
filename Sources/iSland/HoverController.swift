@@ -100,6 +100,7 @@ final class HoverController {
             guard !Task.isCancelled else { return }
             pending = nil
             // The pointer may have moved again while we waited.
+            if !opening && Date() < holdUntil { return } // a hold set while we waited wins
             guard hitRect.contains(NSEvent.mouseLocation) == opening, (store.expanded && store.focusDisplay == display) != opening else { return }
             NSLog("iSland: pointer %@ the island", opening ? "entered" : "left")
             IslandLog.write("island", "\(opening ? "open" : "close") display=\(display) sessions=\(store.sessions.count) requests=\(store.requests.count) mode=\(store.mode)")
