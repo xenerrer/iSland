@@ -327,6 +327,9 @@ struct GlassBackdrop: View {
     let style: IslandStyle
 
     var body: some View {
+        // `compiler(>=6.2)` is the toolchain that ships the macOS 26 SDK: an older one (a CI runner with Xcode 16) cannot
+        // even parse `glassEffect`, so it builds the black fallback.
+        #if compiler(>=6.2)
         if #available(macOS 26.0, *) {
             Color.clear
                 .glassEffect(glass, in: shape)
@@ -335,14 +338,19 @@ struct GlassBackdrop: View {
         } else {
             shape.fill(Color.black.opacity(0.92))
         }
+        #else
+        shape.fill(Color.black.opacity(0.92))
+        #endif
     }
 
+    #if compiler(>=6.2)
     @available(macOS 26.0, *)
     private var glass: Glass {
         style == .clear
             ? Glass.clear.tint(Color.black.opacity(Self.knob("clearTint", default: 0.35)))
             : Glass.regular.tint(Color.black.opacity(Self.knob("glassTint", default: 0.50)))
     }
+    #endif
 
     /// Hidden tuning knob: `iSland -glassTint 0.6` (any number from 0 to 1) overrides the tint opacity.
     private static func knob(_ key: String, default value: Double) -> Double {
