@@ -47,7 +47,7 @@ struct BarsEqualizer: NSViewRepresentable {
 enum GlyphImages {
     /// Canvas, in points, that every glyph is centred in (bigger than the 16 pt slot, so large glyphs are not cut).
     static let canvas: CGFloat = 28
-    private static let scale: CGFloat = 3
+    static let scale: CGFloat = 3
     private nonisolated(unsafe) static var cache: [String: [CGImage]] = [:]
 
     static func frames(_ glyphs: [String], font: NSFont, color: NSColor) -> [CGImage] {
@@ -121,7 +121,9 @@ final class LayerSpinnerView: NSView {
         layer = CALayer()
         content.contents = image
         content.bounds = CGRect(x: 0, y: 0, width: GlyphImages.canvas, height: GlyphImages.canvas)
-        content.contentsGravity = .center
+        // The images are drawn at 3x: tell the layer so (and fit them to the bounds), or on a 1x display they show 3x as big.
+        content.contentsScale = GlyphImages.scale
+        content.contentsGravity = .resizeAspect
         layer?.addSublayer(content)
     }
 
@@ -130,7 +132,6 @@ final class LayerSpinnerView: NSView {
     override func layout() {
         super.layout()
         content.position = CGPoint(x: bounds.midX, y: bounds.midY)
-        content.contentsScale = window?.backingScaleFactor ?? 2
     }
 
     override func viewDidMoveToWindow() {
