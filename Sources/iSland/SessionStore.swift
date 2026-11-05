@@ -81,6 +81,8 @@ final class SessionStore: ObservableObject {
     /// The display whose pill the pointer is on right now but has not opened yet.
     /// The session whose chat (or hosting app) is in front right now: the open island marks it. See `CurrentChatTracker`.
     @Published var currentSessionId: String?
+    /// The row under the pointer, for its hover plate. Its own object, so a hover redraws the rows and nothing else.
+    let rowHover = RowHover()
     @Published var hoverDisplay: CGDirectDisplayID?
     /// Displays showing a full-screen video: their collapsed pill steps aside.
     @Published var hiddenPillDisplays: Set<CGDirectDisplayID> = []

@@ -203,3 +203,45 @@ final class EqualizerLayerView: NSView {
 enum Clock {
     static let epoch = Date(timeIntervalSinceReferenceDate: 0)
 }
+
+/// Which session row the pointer is on. A SwiftUI `onHover` needs a key window, which the island's panel never is, so the
+/// rows report it through an AppKit tracking area (`.activeAlways`).
+@MainActor
+final class RowHover: ObservableObject {
+    @Published var sessionId: String?
+
+    func set(_ id: String, _ inside: Bool) {
+        if inside { if sessionId != id { sessionId = id } } else if sessionId == id { sessionId = nil }
+    }
+}
+
+struct HoverTracker: NSViewRepresentable {
+    let onChange: (Bool) -> Void
+
+    func makeNSView(context: Context) -> TrackingView { TrackingView(onChange: onChange) }
+    func updateNSView(_ view: TrackingView, context: Context) { view.onChange = onChange }
+
+    final class TrackingView: NSView {
+        var onChange: (Bool) -> Void
+        private var area: NSTrackingArea?
+
+        init(onChange: @escaping (Bool) -> Void) {
+            self.onChange = onChange
+            super.init(frame: .zero)
+        }
+
+        required init?(coder: NSCoder) { nil }
+
+        override func updateTrackingAreas() {
+            super.updateTrackingAreas()
+            if let area { removeTrackingArea(area) }
+            let new = NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self, userInfo: nil)
+            addTrackingArea(new)
+            area = new
+        }
+
+        override func mouseEntered(with event: NSEvent) { onChange(true) }
+        override func mouseExited(with event: NSEvent) { onChange(false) }
+        override func hitTest(_ point: NSPoint) -> NSView? { nil } // clicks go to the row
+    }
+}

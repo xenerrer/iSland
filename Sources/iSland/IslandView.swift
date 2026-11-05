@@ -105,7 +105,10 @@ struct IslandView: View {
         }
         .frame(maxWidth: .infinity, alignment: .top)
         .onAppear { store.openStateChanged(open, on: display) }
-        .onChange(of: open) { _, now in store.openStateChanged(now, on: display) }
+        .onChange(of: open) { _, now in
+            store.openStateChanged(now, on: display)
+            if !now { store.rowHover.sessionId = nil }
+        }
         // The glass is ready before the pointer opens the island, so it never has to be inserted mid-animation.
         .onChange(of: swells) { _, now in
             if now { store.openStateChanged(true, on: display) } else if !open { store.openStateChanged(false, on: display) }
@@ -231,7 +234,7 @@ struct IslandView: View {
                     ScrollView(.vertical, showsIndicators: false) {
                         VStack(spacing: IslandLayout.rowSpacing) {
                             ForEach(store.ordered) { session in
-                                SessionRow(session: session, isCurrent: store.currentSessionId == session.id,
+                                SessionRow(session: session, isCurrent: store.currentSessionId == session.id, hover: store.rowHover,
                                            onFocus: { store.focus(session.id) }, onDismiss: { store.dismiss(session.id) })
                             }
                         }
@@ -239,7 +242,7 @@ struct IslandView: View {
                     .frame(height: IslandLayout.scrollingListHeight)
                 } else {
                     ForEach(store.ordered) { session in
-                        SessionRow(session: session, isCurrent: store.currentSessionId == session.id,
+                        SessionRow(session: session, isCurrent: store.currentSessionId == session.id, hover: store.rowHover,
                                        onFocus: { store.focus(session.id) }, onDismiss: { store.dismiss(session.id) })
                     }
                 }
@@ -445,11 +448,14 @@ struct SessionRow: View {
     let session: AgentSession
     /// The chat you are in right now: marked, so you do not click it by mistake.
     var isCurrent = false
+    @ObservedObject var hover: RowHover
     let onFocus: () -> Void
     /// The x at the right edge: take this session off the list.
     let onDismiss: () -> Void
 
     private var badge: ModeBadge? { L10n.modeBadge(session.permissionMode) }
+    private var hovered: Bool { hover.sessionId == session.id }
+    private var plate: Double { (isCurrent ? 0.10 : 0) + (hovered ? 0.07 : 0) }
 
     var body: some View {
         HStack(spacing: 8) {
@@ -491,8 +497,11 @@ struct SessionRow: View {
         }
         .frame(height: IslandLayout.sessionRowHeight)
         // The chat you are in gets a soft plate that reaches a little past the row's content.
-        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.white.opacity(isCurrent ? 0.10 : 0))
-            .padding(.horizontal, -8).padding(.vertical, -1))
+        // A soft plate under the row: stronger for the chat you are in, lighter while the pointer is on it.
+        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.white.opacity(plate))
+            .padding(.horizontal, -8).padding(.vertical, -1)
+            .animation(.easeOut(duration: 0.12), value: plate))
+        .background(HoverTracker { [hover, id = session.id] inside in hover.set(id, inside) })
         .contentShape(Rectangle())
         .onTapGesture(perform: onFocus) // jump to this chat (or to the app that hosts the session)
     }
