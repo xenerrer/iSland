@@ -11,30 +11,8 @@ struct Equalizer: View {
     var color: Color = Color.white.opacity(0.85)
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private static let resting: [CGFloat] = [5, 10, 7, 9]
-
     var body: some View {
-        if reduceMotion {
-            bars(Self.resting)
-        } else {
-            TimelineView(.periodic(from: .now, by: 0.1)) { context in
-                let t = context.date.timeIntervalSinceReferenceDate
-                bars((0..<4).map { Self.height(ofBar: $0, at: t) })
-            }
-        }
-    }
-
-    private static func height(ofBar index: Int, at time: Double) -> CGFloat {
-        let phase: Double = time * (2.3 + Double(index) * 0.9) + Double(index) * 1.7
-        return 3 + 9 * CGFloat(abs(sin(phase)))
-    }
-
-    private func bars(_ heights: [CGFloat]) -> some View {
-        HStack(alignment: .center, spacing: 2) {
-            ForEach(heights.indices, id: \.self) { Capsule().fill(color).frame(width: 2.5, height: heights[$0]) }
-        }
-        .frame(height: 12)
-        .drawingGroup()
+        BarsEqualizer(color: NSColor(color), animated: !reduceMotion).frame(width: 16, height: 12)
     }
 }
 

@@ -382,7 +382,6 @@ struct AgentSpinner: View {
             default: ClaudeSpinner()
             }
         }
-        .drawingGroup() // each frame is rendered as one small image instead of re-laying out text
     }
 }
 
@@ -390,58 +389,38 @@ struct AgentSpinner: View {
 struct GeminiSpinner: View {
     static let frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
     static let color = Color(red: 0.55, green: 0.66, blue: 0.98)
-    private static let interval = 0.08
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: Self.interval)) { context in
-            let tick = Int(context.date.timeIntervalSinceReferenceDate / Self.interval)
-            Text(Self.frames[tick % Self.frames.count])
-                .font(.system(size: 19, weight: .bold, design: .monospaced))
-                .foregroundStyle(Self.color)
-        }
+        GlyphSpinner(glyphs: Self.frames, interval: 0.08, font: .monospacedSystemFont(ofSize: 19, weight: .bold),
+                     color: NSColor(red: 0.55, green: 0.66, blue: 0.98, alpha: 1))
     }
 }
 
 /// Codex CLI's "Working": a bullet whose brightness swells and fades, the way the shimmer sweeps its label.
 struct CodexSpinner: View {
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 0.05)) { context in
-            let wave = 0.5 + 0.5 * sin(context.date.timeIntervalSinceReferenceDate * 2 * .pi / 1.4)
-            Text("•")
-                .font(.system(size: 24, weight: .heavy))
-                .foregroundStyle(Color.white.opacity(0.3 + 0.7 * wave))
-        }
+        PulsingDot(glyph: "•", font: .systemFont(ofSize: 24, weight: .heavy), color: .white, low: 0.3, period: 1.4)
     }
 }
 
 /// The spinner Claude Code shows while it works: a glyph that blooms from a dot to a star and back.
 struct ClaudeSpinner: View {
     static let orange = Color(red: 0.95, green: 0.54, blue: 0.38)
+    static let orangeNS = NSColor(red: 0.95, green: 0.54, blue: 0.38, alpha: 1)
     private static let bloom = ["·", "✢", "✳", "∗", "✻", "✽"]
     private static let frames: [String] = bloom + bloom.dropFirst().dropLast().reversed()
-    private static let interval = 0.12
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: Self.interval)) { context in
-            let tick = Int(context.date.timeIntervalSinceReferenceDate / Self.interval)
-            Text(Self.frames[tick % Self.frames.count])
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(Self.orange)
-        }
+        GlyphSpinner(glyphs: Self.frames, interval: 0.12, font: .systemFont(ofSize: 15, weight: .bold), color: Self.orangeNS)
     }
 }
 
 /// A red dot that breathes: something is waiting for you.
 struct AttentionDot: View {
-    // phaseAnimator instead of @State: SwiftUI's State macro needs the Xcode-only SwiftUIMacros plugin.
     var body: some View {
-        Circle()
-            .fill(Color(red: 1, green: 0.27, blue: 0.23))
-            .frame(width: 9, height: 9)
-            .shadow(color: Color.red.opacity(0.7), radius: 4)
-            .phaseAnimator([1.0, 0.4]) { view, phase in
-                view.opacity(phase)
-            } animation: { _ in .easeInOut(duration: 0.7) }
+        // A solid dot drawn once; the breathing is Core Animation's (a SwiftUI repeating animation would redraw the island forever).
+        PulsingDot(glyph: "●", font: .systemFont(ofSize: 7.5), color: NSColor(red: 1, green: 0.27, blue: 0.23, alpha: 1),
+                   low: 0.4, period: 1.4, shadow: true)
     }
 }
 
