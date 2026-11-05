@@ -276,6 +276,8 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         let service = SMAppService.mainApp
         do {
             if service.status == .enabled { try service.unregister() } else { try service.register() }
+            // Remember a deliberate "off": the app turns itself on at every launch otherwise (see AppDelegate.ensureLaunchAtLogin).
+            UserDefaults.standard.set(service.status != .enabled && service.status != .requiresApproval, forKey: LoginItem.optOutKey)
             if service.status == .requiresApproval {
                 inform(title: L10n.t("Launch at login"), message: L10n.t("Allow it in System Settings > General > Login Items."))
             }

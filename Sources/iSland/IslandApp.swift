@@ -1,6 +1,7 @@
 import AppKit
 import Combine
 import ImageIO
+import ServiceManagement
 import SwiftUI
 import UniformTypeIdentifiers
 import IslandCore
@@ -266,6 +267,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             currentChat.start()
         }
         startServer(args: args)
+        ensureLaunchAtLogin()
+    }
+
+    // MARK: Login item
+
+    /// iSland starts with the Mac: it turns its own login item on at launch, unless you switched it off in the menu. (A
+    /// development build, which lives under `.build`, never registers itself: it would take the place of the installed app.)
+    private func ensureLaunchAtLogin() {
+        guard !UserDefaults.standard.bool(forKey: LoginItem.optOutKey), !Bundle.main.bundlePath.contains("/.build/"),
+              Bundle.main.bundlePath.hasSuffix(".app") else { return }
+        let service = SMAppService.mainApp
+        guard service.status == .notRegistered else { return }
+        do {
+            try service.register()
+            IslandLog.write("login", "registered the login item (status \(service.status.rawValue))")
+        } catch {
+            IslandLog.write("anomaly", "could not register the login item: \(error.localizedDescription)")
+        }
     }
 
     // MARK: Window
@@ -639,4 +658,9 @@ struct IslandApp {
         app.setActivationPolicy(.accessory)
         app.run()
     }
+}
+
+enum LoginItem {
+    /// Set when you turn "Launch at login" off yourself: from then on the app leaves it off.
+    static let optOutKey = "loginItemOptOut"
 }

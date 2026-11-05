@@ -20,6 +20,8 @@ Your MacBook's notch, as a control surface for AI coding agents: **Claude Code**
 - Liquid Glass body on macOS 26+, pure black pill that fuses with the hardware notch when collapsed. Honors *Reduce Transparency* and *Reduce Motion*.
 - If iSland is not running, Claude Code behaves exactly as it always did.
 
+iSland starts with your Mac by itself (it turns its own login item on at launch); switch it off in the settings menu ("Launch at login") and it stays off.
+
 English and Brazilian Portuguese, chosen from the system language.
 
 ## Requirements
