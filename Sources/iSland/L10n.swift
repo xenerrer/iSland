@@ -207,8 +207,6 @@ enum L10n {
         "Finish": "Concluir",
         "Animation": "Animação",
         "Displays": "Telas",
-        "Here": "Aqui",
-        "You are here": "Você está aqui",
         "Main display": "Tela principal",
         "All displays": "Todas as telas",
         "Smooth (Apple)": "Suave (padrão Apple)",

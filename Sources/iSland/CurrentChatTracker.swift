@@ -73,6 +73,10 @@ final class CurrentChatTracker {
     }
 
     private func set(_ id: String?) {
+        // A click just sent you somewhere: believe it until the app's own record catches up (it lags by seconds).
+        if let override = store.currentOverride {
+            if id == override.id || Date() >= override.until { store.currentOverride = nil } else { return }
+        }
         if store.currentSessionId != id { store.currentSessionId = id }
     }
 }

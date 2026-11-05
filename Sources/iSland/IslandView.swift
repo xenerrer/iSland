@@ -461,13 +461,10 @@ struct SessionRow: View {
         HStack(spacing: 8) {
             StatusGlyph(state: session.state, agent: session.agent)
             VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Text(session.title ?? session.project)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Color.white)
-                        .lineLimit(1)
-                    if isCurrent { HereTag() }
-                }
+                Text(session.title ?? session.project)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Color.white)
+                    .lineLimit(1)
                 if session.title != nil || badge != nil {
                     HStack(spacing: 6) {
                         // Without a chat name the folder is already the headline.
@@ -504,20 +501,6 @@ struct SessionRow: View {
         .background(HoverTracker { [hover, id = session.id] inside in hover.set(id, inside) })
         .contentShape(Rectangle())
         .onTapGesture(perform: onFocus) // jump to this chat (or to the app that hosts the session)
-    }
-}
-
-/// "Here": the session whose chat is in front of you.
-struct HereTag: View {
-    var body: some View {
-        Text(L10n.t("Here"))
-            .font(.system(size: 9.5, weight: .semibold))
-            .foregroundStyle(Color.white.opacity(0.85))
-            .padding(.horizontal, 6)
-            .padding(.vertical, 1.5)
-            .background(Capsule().fill(Color.white.opacity(0.18)))
-            .fixedSize()
-            .accessibilityLabel(L10n.t("You are here"))
     }
 }
 

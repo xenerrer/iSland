@@ -83,6 +83,9 @@ final class SessionStore: ObservableObject {
     @Published var currentSessionId: String?
     /// The row under the pointer, for its hover plate. Its own object, so a hover redraws the rows and nothing else.
     let rowHover = RowHover()
+    /// Where a click just sent you. The Claude app writes down which chat is open only a few seconds later, so until then
+    /// (or until it agrees) this is what the marker shows.
+    var currentOverride: (id: String, until: Date)?
     @Published var hoverDisplay: CGDirectDisplayID?
     /// Displays showing a full-screen video: their collapsed pill steps aside.
     @Published var hiddenPillDisplays: Set<CGDirectDisplayID> = []
@@ -416,6 +419,12 @@ final class SessionStore: ObservableObject {
         sessions[id].map { $0.title ?? $0.project }
     }
 
+    /// The marker follows a click at once; the tracker takes over again when the app confirms or after a few seconds.
+    func markCurrent(_ sessionId: String) {
+        currentOverride = (sessionId, Date().addingTimeInterval(10))
+        currentSessionId = sessionId
+    }
+
     func focusTarget(for sessionId: String) -> FocusTarget {
         guard let session = sessions[sessionId] else { return .nowhere }
         if let chatId = session.chatId, let link = ClaudeDesktop.deepLink(toChat: chatId) { return .chat(link) }
@@ -434,8 +443,10 @@ final class SessionStore: ObservableObject {
         }
         switch focusTarget(for: sessionId) {
         case .chat(let link):
+            markCurrent(sessionId)
             ProcessTree.open(chat: link)
         case .hostApp(let pid):
+            markCurrent(sessionId)
             if let app = ProcessTree.hostApplication(of: pid) { ProcessTree.bringForward(app) }
             else { IslandLog.write("anomaly", "no app found hosting the session (pid \(pid)): nowhere to go") }
         case .nowhere:

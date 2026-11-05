@@ -735,3 +735,13 @@ import Testing
         #expect(store.ordered.map(\.id) == before)
     }
 }
+
+@MainActor
+@Suite("Marking the current chat") struct CurrentMarkTests {
+    @Test func aClickMovesTheMarkAtOnce() {
+        let store = SessionStore()
+        store.markCurrent("x") // what `focus` does before it opens the chat
+        #expect(store.currentSessionId == "x")
+        #expect(store.currentOverride?.id == "x")
+    }
+}
