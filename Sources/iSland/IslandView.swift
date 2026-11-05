@@ -231,14 +231,16 @@ struct IslandView: View {
                     ScrollView(.vertical, showsIndicators: false) {
                         VStack(spacing: IslandLayout.rowSpacing) {
                             ForEach(store.ordered) { session in
-                                SessionRow(session: session, onFocus: { store.focus(session.id) }, onDismiss: { store.dismiss(session.id) })
+                                SessionRow(session: session, isCurrent: store.currentSessionId == session.id,
+                                           onFocus: { store.focus(session.id) }, onDismiss: { store.dismiss(session.id) })
                             }
                         }
                     }
                     .frame(height: IslandLayout.scrollingListHeight)
                 } else {
                     ForEach(store.ordered) { session in
-                        SessionRow(session: session, onFocus: { store.focus(session.id) }, onDismiss: { store.dismiss(session.id) })
+                        SessionRow(session: session, isCurrent: store.currentSessionId == session.id,
+                                       onFocus: { store.focus(session.id) }, onDismiss: { store.dismiss(session.id) })
                     }
                 }
                 // Music and calendar give way while a question is waiting.
@@ -441,6 +443,8 @@ struct AttentionDot: View {
 /// One session: the chat's name, with the folder it works in underneath, small. Click to go to that chat.
 struct SessionRow: View {
     let session: AgentSession
+    /// The chat you are in right now: marked, so you do not click it by mistake.
+    var isCurrent = false
     let onFocus: () -> Void
     /// The x at the right edge: take this session off the list.
     let onDismiss: () -> Void
@@ -451,10 +455,13 @@ struct SessionRow: View {
         HStack(spacing: 8) {
             StatusGlyph(state: session.state, agent: session.agent)
             VStack(alignment: .leading, spacing: 2) {
-                Text(session.title ?? session.project)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Color.white)
-                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    Text(session.title ?? session.project)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Color.white)
+                        .lineLimit(1)
+                    if isCurrent { HereTag() }
+                }
                 if session.title != nil || badge != nil {
                     HStack(spacing: 6) {
                         // Without a chat name the folder is already the headline.
@@ -483,8 +490,25 @@ struct SessionRow: View {
             .accessibilityLabel(L10n.t("Remove from the list"))
         }
         .frame(height: IslandLayout.sessionRowHeight)
+        // The chat you are in gets a soft plate that reaches a little past the row's content.
+        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.white.opacity(isCurrent ? 0.10 : 0))
+            .padding(.horizontal, -8).padding(.vertical, -1))
         .contentShape(Rectangle())
         .onTapGesture(perform: onFocus) // jump to this chat (or to the app that hosts the session)
+    }
+}
+
+/// "Here": the session whose chat is in front of you.
+struct HereTag: View {
+    var body: some View {
+        Text(L10n.t("Here"))
+            .font(.system(size: 9.5, weight: .semibold))
+            .foregroundStyle(Color.white.opacity(0.85))
+            .padding(.horizontal, 6)
+            .padding(.vertical, 1.5)
+            .background(Capsule().fill(Color.white.opacity(0.18)))
+            .fixedSize()
+            .accessibilityLabel(L10n.t("You are here"))
     }
 }
 

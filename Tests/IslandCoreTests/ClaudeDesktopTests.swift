@@ -177,3 +177,38 @@ import Testing
         #expect(ClaudeHook.event(from: bare).transcriptPath == nil)
     }
 }
+
+@Suite("The chat on screen") struct CurrentChatTests {
+    func folder() throws -> URL {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("island-ls-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        return url
+    }
+
+    func entry(_ id: String) -> String { "{\"state\":{\"rowSplit\":0.5,\"lastPrimaryCodeSession\":{\"id\":\"\(id)\",\"type\":\"local\"}},\"version\":4}" }
+
+    @Test func theNewestEntryWins() throws {
+        let dir = try folder()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let log = entry("local_aaaaaaaa-0000-4000-8000-000000000001") + "\u{1}junk\u{2}" + entry("local_bbbbbbbb-0000-4000-8000-000000000002")
+        try Data(log.utf8).write(to: dir.appendingPathComponent("000001.log"))
+        #expect(ClaudeDesktop.currentChatId(in: dir) == "local_bbbbbbbb-0000-4000-8000-000000000002")
+    }
+
+    @Test func anEntryThatIsNotAChatIdIsSkipped() throws {
+        let dir = try folder()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let log = entry("local_aaaaaaaa-0000-4000-8000-000000000001") + entry("not a chat id")
+        try Data(log.utf8).write(to: dir.appendingPathComponent("000001.log"))
+        #expect(ClaudeDesktop.currentChatId(in: dir) == "local_aaaaaaaa-0000-4000-8000-000000000001")
+    }
+
+    @Test func nothingToFindIsNil() throws {
+        let dir = try folder()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        #expect(ClaudeDesktop.currentChatId(in: dir) == nil)
+        try Data("nothing here".utf8).write(to: dir.appendingPathComponent("000001.log"))
+        #expect(ClaudeDesktop.currentChatId(in: dir) == nil)
+        #expect(ClaudeDesktop.currentChatId(in: dir.appendingPathComponent("missing")) == nil)
+    }
+}

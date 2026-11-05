@@ -41,6 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let appearance = Appearance()
     lazy var widgets = Widgets(appearance: appearance)
     lazy var identities = SessionIdentityResolver(store: store)
+    lazy var currentChat = CurrentChatTracker(store: store)
     let mirror = MirrorManager()
     private let fullscreen = FullscreenWatcher()
     private let guideWindow = OnboardingWindow()
@@ -262,6 +263,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !args.contains("--demo") { // demos show made-up music, events and chat names instead
             widgets.start()
             identities.start()
+            currentChat.start()
         }
         startServer(args: args)
     }
@@ -453,6 +455,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         fullscreen.stop()
         mirror.stop()
         identities.stop()
+        currentChat.stop()
         widgets.stop()
         islands.forEach { $0.hover?.stop() }
         server?.stop()
@@ -510,6 +513,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 timestamp: now))
         }
         store.expanded = expanded
+        if CommandLine.arguments.contains("--here") { store.currentSessionId = "a" } // dev flag: mark a row as the chat in front
         store.mirrorOn = CommandLine.arguments.contains("--mirror") // dev flag: the mirror, without a camera
         store.pomodoroSetupOn = CommandLine.arguments.contains("--pomodoro") // dev flag: the pomodoro setup panel
         if CommandLine.arguments.contains("--newchat") { // dev flag: the folder list, with made-up folders

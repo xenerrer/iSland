@@ -31,6 +31,41 @@ public enum ClaudeDesktop {
             .appendingPathComponent("Library/Application Support/Claude/claude-code-sessions", isDirectory: true)
     }
 
+    /// Where the app keeps its small key-value store (Chromium Local Storage). It remembers which Code chat is on screen
+    /// (`lastPrimaryCodeSession`). `ISLAND_CLAUDE_STORAGE` relocates it for the tests.
+    public static var localStorageFolder: URL {
+        if let override = ProcessInfo.processInfo.environment["ISLAND_CLAUDE_STORAGE"], !override.isEmpty {
+            return URL(fileURLWithPath: override, isDirectory: true)
+        }
+        return FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Application Support/Claude/Local Storage/leveldb", isDirectory: true)
+    }
+
+    /// The `local_...` id of the Code chat the app shows (the last one it recorded), or nil when it cannot be told. Only
+    /// that one id is read out of the store: the newest files first, the newest entry in each (the store is append-only).
+    public static func currentChatId(in folder: URL = localStorageFolder) -> String? {
+        let keys: [URLResourceKey] = [.contentModificationDateKey]
+        guard let names = try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: keys) else { return nil }
+        let files = names.filter { ["log", "ldb"].contains($0.pathExtension) }
+            .compactMap { url -> (URL, Date)? in
+                guard let date = (try? url.resourceValues(forKeys: Set(keys)))?.contentModificationDate else { return nil }
+                return (url, date)
+            }
+            .sorted { $0.1 > $1.1 }
+        let marker = Data("\"lastPrimaryCodeSession\":{\"id\":\"".utf8)
+        for (url, _) in files {
+            guard let data = try? Data(contentsOf: url, options: .mappedIfSafe), data.count < 64 * 1024 * 1024 else { continue }
+            var searchEnd = data.endIndex
+            while let found = data.range(of: marker, options: .backwards, in: data.startIndex..<searchEnd) {
+                let tail = data[found.upperBound..<min(data.endIndex, found.upperBound + 80)]
+                let id = String(decoding: tail.prefix { $0 != 0x22 }, as: UTF8.self)
+                if isChatId(id) { return id }
+                searchEnd = found.lowerBound
+            }
+        }
+        return nil
+    }
+
     /// The app's own "open this chat" link, handled by the app itself (`claude://code/continue?session=local_...`).
     /// Anything that is not shaped like a chat id is refused, so nothing odd ever reaches the app.
     public static func deepLink(toChat localId: String) -> URL? {

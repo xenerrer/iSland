@@ -79,6 +79,8 @@ final class SessionStore: ObservableObject {
     /// (a question, the mirror and the menus open there too).
     @Published var focusDisplay: CGDirectDisplayID = CGMainDisplayID()
     /// The display whose pill the pointer is on right now but has not opened yet.
+    /// The session whose chat (or hosting app) is in front right now: the open island marks it. See `CurrentChatTracker`.
+    @Published var currentSessionId: String?
     @Published var hoverDisplay: CGDirectDisplayID?
     /// Displays showing a full-screen video: their collapsed pill steps aside.
     @Published var hiddenPillDisplays: Set<CGDirectDisplayID> = []
