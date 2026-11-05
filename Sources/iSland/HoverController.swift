@@ -42,6 +42,11 @@ final class HoverController {
         if let monitor = NSEvent.addGlobalMonitorForEvents(matching: mask, handler: { [weak self] _ in
             Task { @MainActor in self?.pointerMoved() }
         }) { monitors.append(monitor) }
+        // A click that reaches ANOTHER app while the pointer is over our open island means the panel was still click-through:
+        // note it, and fix the cause for the next click.
+        if let monitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown], handler: { [weak self] _ in
+            Task { @MainActor in self?.clickPassedThrough() }
+        }) { monitors.append(monitor) }
         if let monitor = NSEvent.addLocalMonitorForEvents(matching: mask, handler: { [weak self] event in
             Task { @MainActor in self?.pointerMoved() }
             return event
@@ -77,6 +82,12 @@ final class HoverController {
     /// Re-evaluates whether clicks should land on the island or pass through to the windows under the panel.
     func refreshInteractivity() {
         setInteractive?(store.isOpen(on: display) && hitRect.contains(NSEvent.mouseLocation))
+    }
+
+    private func clickPassedThrough() {
+        guard store.isOpen(on: display), hitRect.contains(NSEvent.mouseLocation) else { return }
+        IslandLog.write("anomaly", "click went through the open island (display=\(display), requests=\(store.requests.count)); made it interactive")
+        refreshInteractivity()
     }
 
     private func pointerMoved() {

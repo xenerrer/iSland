@@ -39,10 +39,21 @@ enum ProcessTree {
     static func open(chat link: URL) {
         let configuration = NSWorkspace.OpenConfiguration()
         configuration.activates = true
+        let finish: @Sendable (NSRunningApplication?, Error?) -> Void = { _, error in
+            // The link navigates the chat; bring the app forward too (an app that is not active may be refused by the first call).
+            DispatchQueue.main.async {
+                // `open -a` style activation: NSRunningApplication.activate() is ignored from a background app.
+                if let app = NSRunningApplication.runningApplications(withBundleIdentifier: ClaudeDesktop.bundleIdentifier).first {
+                    bringForward(app)
+                }
+                if let error { IslandLog.write("anomaly", "opening the chat failed: \(error.localizedDescription)") }
+            }
+        }
         if let app = NSWorkspace.shared.urlForApplication(withBundleIdentifier: ClaudeDesktop.bundleIdentifier) {
-            NSWorkspace.shared.open([link], withApplicationAt: app, configuration: configuration)
+            NSWorkspace.shared.open([link], withApplicationAt: app, configuration: configuration, completionHandler: finish)
         } else {
-            NSWorkspace.shared.open(link)
+            IslandLog.write("anomaly", "the Claude app was not found by bundle id; opening the link with the system default")
+            NSWorkspace.shared.open(link, configuration: configuration, completionHandler: finish)
         }
     }
 }

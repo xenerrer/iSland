@@ -677,3 +677,44 @@ import Testing
         #expect((store.sessions["s2"]?.detail.count ?? 0) <= 48)
     }
 }
+
+@MainActor
+@Suite("Handing a question back") struct HandBackTests {
+    let t0 = Date(timeIntervalSince1970: 1_000)
+
+    func store(with request: Bool) -> SessionStore {
+        let store = SessionStore()
+        if request {
+            store.showPreview(AgentEvent(agent: "claude", sessionId: "s", cwd: "/w", event: "PermissionRequest", tool: "Bash", message: nil,
+                                         permission: PermissionPrompt(tool: "Bash", title: "Run command", detail: "ls", alwaysLabel: nil, waitSeconds: 30),
+                                         timestamp: t0))
+        }
+        return store
+    }
+
+    @Test func handingBackTellsTheAppToGoThere() {
+        let store = store(with: true)
+        var went: [String] = []
+        store.onHandBack = { went.append($0) }
+        store.answer(store.requests[0].id, .terminal)
+        #expect(went == ["s"])
+        #expect(store.requests.isEmpty)
+    }
+
+    @Test func otherAnswersStayWhereTheyAre() {
+        let store = store(with: true)
+        var went: [String] = []
+        store.onHandBack = { went.append($0) }
+        store.answer(store.requests[0].id, .deny)
+        #expect(went.isEmpty)
+    }
+
+    @Test func focusingASessionWithAPendingQuestionHandsItBackFirst() {
+        let store = store(with: true)
+        var went: [String] = []
+        store.onHandBack = { went.append($0) }
+        store.focus("s")
+        #expect(went == ["s"])
+        #expect(store.requests.isEmpty)
+    }
+}

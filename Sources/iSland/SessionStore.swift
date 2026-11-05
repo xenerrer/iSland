@@ -110,6 +110,8 @@ final class SessionStore: ObservableObject {
 
     /// A turn just finished (the session carries its duration). The app uses it for the optional sound.
     var onTurnFinished: ((AgentSession) -> Void)?
+    /// A question was handed back to the chat or terminal: the app goes there (after a beat, so its prompt can appear).
+    var onHandBack: ((String) -> Void)?
     /// A new question was queued by a real hook.
     var onQuestion: (() -> Void)?
 
@@ -325,6 +327,7 @@ final class SessionStore: ObservableObject {
         if requests[index].prompt.needsReview, decision == .allow || decision == .allowAlways { return }
         let request = requests.remove(at: index)
         responders.removeValue(forKey: id)?.reply(DecisionReply(decision))
+        if decision == .terminal { onHandBack?(request.sessionId) }
         guard var session = sessions[request.sessionId] else { return }
         switch decision {
         case .allow, .allowAlways: session.state = .working; session.detail = "Approved"
@@ -410,13 +413,21 @@ final class SessionStore: ObservableObject {
 
     /// Takes you to the session: the exact chat when it lives in the Claude app, otherwise the app that hosts it.
     func focus(_ sessionId: String) {
+        // A question this session is still waiting on is not in its chat yet: the hook is holding it here. Hand it back
+        // first (the chat then shows its own prompt) and go there once it has had a moment to appear.
+        let waiting = requests.filter { $0.sessionId == sessionId }
+        if !waiting.isEmpty {
+            waiting.forEach { answer($0.id, .terminal) }
+            return // `onHandBack` takes you there
+        }
         switch focusTarget(for: sessionId) {
         case .chat(let link):
             ProcessTree.open(chat: link)
         case .hostApp(let pid):
             if let app = ProcessTree.hostApplication(of: pid) { ProcessTree.bringForward(app) }
+            else { IslandLog.write("anomaly", "no app found hosting the session (pid \(pid)): nowhere to go") }
         case .nowhere:
-            break
+            IslandLog.write("anomaly", "focus requested for a session with no chat and no process")
         }
     }
 

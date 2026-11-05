@@ -206,6 +206,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             .store(in: &subscriptions)
 
+        store.onHandBack = { [store] sessionId in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { store.focus(sessionId) }
+        }
+        // A question opens on the display the pointer is on, not on one you may not be looking at.
+        store.$requests.map { $0.first?.id }.removeDuplicates()
+            .sink { [weak self] id in
+                guard id != nil else { return }
+                DispatchQueue.main.async { self?.focusDisplayUnderPointer() }
+            }
+            .store(in: &subscriptions)
         store.onTurnFinished = { [appearance] session in
             if appearance.sounds, (session.lastTurnSeconds ?? 0) >= 20 { NSSound(named: "Glass")?.play() }
         }
@@ -345,6 +355,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         NSLog("iSland: %d island(s) on %d display(s)", islands.count, screens.count)
         IslandLog.write("display", "islands=\(islands.count) displays=\(screens.count) choice=\(appearance.displayChoice.raw) focus=\(store.focusDisplay)")
+    }
+
+    private func focusDisplayUnderPointer() {
+        let point = NSEvent.mouseLocation
+        guard let id = NSScreen.screens.first(where: { $0.frame.contains(point) })?.displayID,
+              islands.contains(where: { $0.display == id }), store.focusDisplay != id else { return }
+        IslandLog.write("island", "question moved to display=\(id) (pointer)")
+        store.focusDisplay = id
     }
 
     private func screenChanged() {
