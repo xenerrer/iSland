@@ -144,16 +144,20 @@ struct DotRing: View {
     var body: some View {
         Canvas { context, size in
             let dots = 30
-            let left = Int(ceil((1 - min(1, max(0, elapsed))) * Double(dots) - 0.0001))
-            let radius = min(size.width, size.height) / 2 - 1
-            let dot = max(1.2, diameter * 0.085)
-            let tint = isBreak ? Color(red: 0.4, green: 0.88, blue: 0.55) : Color.white
+            let remaining: Double = 1 - min(1, max(0, elapsed))
+            let left = Int(ceil(remaining * Double(dots) - 0.0001))
+            let radius: CGFloat = min(size.width, size.height) / 2 - 1
+            let dot: CGFloat = max(1.2, diameter * 0.085)
+            let tint: Color = isBreak ? Color(red: 0.4, green: 0.88, blue: 0.55) : Color.white
+            let onColor: Color = tint.opacity(paused ? 0.45 : 0.95)
+            let offColor: Color = Color.white.opacity(0.17)
             for index in 0..<dots {
-                let angle = Double(index) / Double(dots) * 2 * .pi - .pi / 2
-                let center = CGPoint(x: size.width / 2 + cos(angle) * radius, y: size.height / 2 + sin(angle) * radius)
+                let angle: Double = Double(index) / Double(dots) * 2 * Double.pi - Double.pi / 2
+                let x: CGFloat = size.width / 2 + CGFloat(cos(angle)) * radius
+                let y: CGFloat = size.height / 2 + CGFloat(sin(angle)) * radius
+                let rect = CGRect(x: x - dot / 2, y: y - dot / 2, width: dot, height: dot)
                 let on = index >= dots - left
-                context.fill(Path(ellipseIn: CGRect(x: center.x - dot / 2, y: center.y - dot / 2, width: dot, height: dot)),
-                             with: .color(on ? tint.opacity(paused ? 0.45 : 0.95) : Color.white.opacity(0.17)))
+                context.fill(Path(ellipseIn: rect), with: .color(on ? onColor : offColor))
             }
         }
         .frame(width: diameter, height: diameter)
