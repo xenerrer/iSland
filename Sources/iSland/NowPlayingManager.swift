@@ -56,6 +56,8 @@ final class NowPlayingManager: ObservableObject {
     private var process: Process?
     private var stopped = true
     private var shownArtwork: String?
+    private var restartDelay = 3.0
+    private var startedAt: Date?
     private let location = AdapterLocation.find()
 
     var isAvailable: Bool { location != nil }
@@ -63,7 +65,8 @@ final class NowPlayingManager: ObservableObject {
     func start() {
         stopped = false
         if location == nil { NSLog("iSland: media adapter not found; the music card stays off") }
-        Self.reapOrphans()
+        restartDelay = 3
+        Task.detached(priority: .utility) { Self.reapOrphans() } // a `ps` scan: not on the main thread
         launch()
     }
 
@@ -140,6 +143,7 @@ final class NowPlayingManager: ObservableObject {
         do {
             try task.run()
             process = task
+            startedAt = Date()
             buffer.removeAll()
             decoder = NowPlayingDecoder()
         } catch {
@@ -151,6 +155,8 @@ final class NowPlayingManager: ObservableObject {
     private func ended(_ finished: Process) {
         guard process === finished else { return }
         process = nil
+        // A helper that dies at once (a macOS update broke the framework) is retried with growing pauses, not every 3 s forever.
+        if let startedAt, Date().timeIntervalSince(startedAt) > 30 { restartDelay = 3 } else { restartDelay = min(300, restartDelay * 2) }
         publish(NowPlayingState())
         scheduleRestart()
     }
@@ -158,7 +164,7 @@ final class NowPlayingManager: ObservableObject {
     private func scheduleRestart() {
         guard !stopped else { return }
         Task { @MainActor in
-            try? await Task.sleep(for: .seconds(3))
+            try? await Task.sleep(for: .seconds(restartDelay))
             launch()
         }
     }

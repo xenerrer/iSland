@@ -48,6 +48,7 @@ final class CalendarManager: ObservableObject {
         observer = NotificationCenter.default.addObserver(forName: .EKEventStoreChanged, object: store, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.reload() }
         }
+        defer { timer?.tolerance = 10 }
         timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.tick() }
         }

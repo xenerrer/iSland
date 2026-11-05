@@ -148,7 +148,7 @@ struct IslandView: View {
             Equalizer(color: Color.white.opacity(0.8)).scaleEffect(0.75)
         case .pomodoro:
             // the ring of dots for the phase; the exact time is on the card in the open island
-            TimelineView(.periodic(from: .now, by: 5)) { context in
+            TimelineView(.periodic(from: Clock.epoch, by: 5)) { context in
                 DotRing(elapsed: widgets.focus.fraction(at: context.date),
                         isBreak: widgets.focus.phase?.isBreak ?? false, paused: widgets.focus.isPaused, diameter: 16)
             }
@@ -523,7 +523,7 @@ struct SessionDetail: View {
 
     var body: some View {
         if session.state == .working, let start = session.turnStartedAt {
-            TimelineView(.periodic(from: .now, by: 1)) { context in
+            TimelineView(.periodic(from: Clock.epoch, by: 1)) { context in
                 Text(L10n.detail(session.detail) + " · " + DurationFormat.short(Int(context.date.timeIntervalSince(start))))
             }
         } else if session.state == .idle, let seconds = session.lastTurnSeconds, seconds >= 1, session.detail == "Done" {
@@ -623,7 +623,7 @@ struct Countdown: View {
     let deadline: Date
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { context in
+        TimelineView(.periodic(from: Clock.epoch, by: 1)) { context in
             let seconds = max(0, Int(deadline.timeIntervalSince(context.date).rounded(.up)))
             Text("\(seconds)s")
                 .font(.system(size: 11, weight: .medium, design: .monospaced))

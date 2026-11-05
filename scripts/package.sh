@@ -22,7 +22,7 @@ mkdir -p "$STAGE"
 cp -R "$APP" "$STAGE/"
 ln -s /Applications "$STAGE/Applications"
 cp packaging/READ-ME-FIRST.txt "$STAGE/READ ME FIRST.txt"
-hdiutil create -volname "$APP_NAME" -srcfolder "$STAGE" -ov -format UDZO "$DIST/$APP_NAME-$VERSION.dmg" > /dev/null
+hdiutil create -volname "$APP_NAME" -srcfolder "$STAGE" -ov -format ULMO "$DIST/$APP_NAME-$VERSION.dmg" > /dev/null
 rm -rf "$STAGE"
 
 echo "OK: $DIST/$APP_NAME-$VERSION.dmg"

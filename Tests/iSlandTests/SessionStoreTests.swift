@@ -718,3 +718,20 @@ import Testing
         #expect(store.requests.isEmpty)
     }
 }
+
+@MainActor
+@Suite("Row order") struct RowOrderTests {
+    @Test func rowsKeepTheirPlaceWhileAgentsWork() {
+        let store = SessionStore()
+        let t0 = Date(timeIntervalSince1970: 1_000)
+        for (i, id) in ["a", "b", "c"].enumerated() {
+            store.apply(AgentEvent(agent: "claude", sessionId: id, cwd: "/w/\(id)", event: "UserPromptSubmit", tool: nil, message: nil,
+                                   timestamp: t0.addingTimeInterval(Double(i))))
+        }
+        let before = store.ordered.map(\.id)
+        // The oldest one reports a tool: it must not jump to the top.
+        store.apply(AgentEvent(agent: "claude", sessionId: "a", cwd: "/w/a", event: "PreToolUse", tool: "Bash", message: nil,
+                               timestamp: t0.addingTimeInterval(60)))
+        #expect(store.ordered.map(\.id) == before)
+    }
+}

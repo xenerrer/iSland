@@ -40,7 +40,7 @@ final class HoverController {
     func start() {
         let mask: NSEvent.EventTypeMask = [.mouseMoved, .leftMouseDragged, .rightMouseDragged]
         if let monitor = NSEvent.addGlobalMonitorForEvents(matching: mask, handler: { [weak self] _ in
-            Task { @MainActor in self?.pointerMoved() }
+            MainActor.assumeIsolated { self?.pointerMoved() }
         }) { monitors.append(monitor) }
         // A click that reaches ANOTHER app while the pointer is over our open island means the panel was still click-through:
         // note it, and fix the cause for the next click.
@@ -48,7 +48,7 @@ final class HoverController {
             Task { @MainActor in self?.clickPassedThrough() }
         }) { monitors.append(monitor) }
         if let monitor = NSEvent.addLocalMonitorForEvents(matching: mask, handler: { [weak self] event in
-            Task { @MainActor in self?.pointerMoved() }
+            MainActor.assumeIsolated { self?.pointerMoved() }
             return event
         }) { monitors.append(monitor) }
     }
@@ -92,6 +92,9 @@ final class HoverController {
 
     private func pointerMoved() {
         guard !store.menuOpen else { return } // the pointer is on the menu, which hangs below the island
+        // Every mouse move on the system lands here: a closed island only cares about the strip at the top of its screen.
+        if !store.isOpen(on: display), store.hoverDisplay != display, pending == nil,
+           NSEvent.mouseLocation.y < screenFrame.maxY - 80 { return }
         refreshInteractivity()
         let inside = hitRect.contains(NSEvent.mouseLocation)
         let openHere = store.expanded && store.focusDisplay == display

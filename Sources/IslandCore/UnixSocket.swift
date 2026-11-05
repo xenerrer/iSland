@@ -225,6 +225,8 @@ public final class SocketServer: @unchecked Sendable {
     /// More than this many open connections at once are refused: each one holds a file descriptor (an app launched from the
     /// Finder starts with only 256), and a flood must not starve the rest of the app.
     static let maxConnections = 160
+    /// The inode of the socket file we bound, so `stop()` never deletes one that belongs to a newer instance.
+    private var boundInode: ino_t?
 
     public init(url: URL = IslandPaths.socketURL, idleTimeout: TimeInterval = 10, onEvent: @escaping Handler) {
         self.url = url
@@ -239,24 +241,27 @@ public final class SocketServer: @unchecked Sendable {
         let owner = (try? FileManager.default.attributesOfItem(atPath: folder.path))?[.ownerAccountID] as? NSNumber
         guard owner?.uint32Value == geteuid() else { throw POSIXError(.EPERM) }
         chmod(folder.path, 0o700)
+        // Another running iSland owns this socket: taking it would silence its hooks (and quitting would then delete ours).
+        if Self.isListening(at: url.path) { throw POSIXError(.EADDRINUSE) }
         unlink(url.path)
         let fd = socket(AF_UNIX, SOCK_STREAM, 0)
         guard fd >= 0 else { throw POSIXError(.init(rawValue: errno) ?? .EIO) }
         var addr = UnixSocket.address(for: url.path)
-        // The socket file is born owner-only: with the usual umask it would exist, readable by others, until the chmod below.
-        let previousMask = umask(0o177)
+        // The folder is 0700 and ours, so nobody else can reach the file between bind and the chmod below. (Changing the
+        // process-wide umask here instead raced with every other thread creating files.)
         let bound = withUnsafePointer(to: &addr) {
             $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
                 bind(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size))
             }
         }
-        umask(previousMask)
         guard bound == 0, listen(fd, 128) == 0 else {
             let code = POSIXError.Code(rawValue: errno) ?? .EIO
             close(fd)
             throw POSIXError(code)
         }
         chmod(url.path, 0o600)
+        var info = stat()
+        if stat(url.path, &info) == 0 { boundInode = info.st_ino }
         let source = DispatchSource.makeReadSource(fileDescriptor: fd, queue: queue)
         source.setEventHandler { [weak self] in self?.acceptOne(on: fd) }
         source.setCancelHandler { close(fd) }
@@ -271,7 +276,22 @@ public final class SocketServer: @unchecked Sendable {
             for connection in Array(connections.values) { connection.finish(peerGone: false) }
             connections.removeAll()
         }
-        unlink(url.path)
+        // Only remove the file if it is still the one we bound.
+        var info = stat()
+        if let boundInode, stat(url.path, &info) == 0, info.st_ino == boundInode { unlink(url.path) }
+        boundInode = nil
+    }
+
+    /// True when a live server answers at `path` (a stale file left by a crash refuses the connection).
+    static func isListening(at path: String) -> Bool {
+        let fd = socket(AF_UNIX, SOCK_STREAM, 0)
+        guard fd >= 0 else { return false }
+        defer { close(fd) }
+        var addr = UnixSocket.address(for: path)
+        let result = withUnsafePointer(to: &addr) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { connect(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size)) }
+        }
+        return result == 0
     }
 
     private func acceptOne(on listener: Int32) {

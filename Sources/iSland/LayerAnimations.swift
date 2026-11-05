@@ -196,3 +196,9 @@ final class EqualizerLayerView: NSView {
 
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
 }
+
+/// A fixed origin for every `TimelineView`: `.now` is evaluated again each time the parent redraws, which re-anchors the
+/// schedule on every agent event.
+enum Clock {
+    static let epoch = Date(timeIntervalSinceReferenceDate: 0)
+}

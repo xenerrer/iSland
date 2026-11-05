@@ -17,6 +17,6 @@ sleep 0.5
 
 mkdir -p "$HOME/.island"
 touch "$HOME/.island/app.log" && chmod 600 "$HOME/.island/app.log" # it records tool names and messages: yours alone
-open -n "$APP" --stdout "$HOME/.island/app.log" --stderr "$HOME/.island/app.log" --args --verbose
+open "$APP" --stdout "$HOME/.island/app.log" --stderr "$HOME/.island/app.log" --args --verbose
 sleep 1
 pgrep -f "bundle/iSland.app/Contents/MacOS/iSland" > /dev/null && echo "running: $APP" || { echo "did not start; see ~/.island/app.log" >&2; exit 1; }

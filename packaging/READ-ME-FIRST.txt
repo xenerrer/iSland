@@ -11,7 +11,8 @@ iSland — first launch
    Prefer the Terminal?  This does the same thing:
        xattr -dr com.apple.quarantine /Applications/iSland.app
 
-3. Click the ✻ in the menu bar and choose "Install Claude Code hooks...".
+3. Move the pointer to the notch, open the island and click the gear, then choose
+   "Install Claude Code hooks...".
    It tells you exactly what will change in ~/.claude/settings.json and saves a
    backup of the file first. Then start a new Claude Code session.
 
@@ -39,7 +40,8 @@ iSland — primeira abertura
    Prefere o Terminal?  Isto faz a mesma coisa:
        xattr -dr com.apple.quarantine /Applications/iSland.app
 
-3. Clique no ✻ da barra de menus e escolha "Install Claude Code hooks...".
+3. Leve o ponteiro ao notch, abra a ilha e clique na engrenagem; depois escolha
+   "Install Claude Code hooks...".
    Ele mostra exatamente o que vai mudar em ~/.claude/settings.json e guarda um
    backup do arquivo antes. Depois, abra uma nova sessão do Claude Code.
 

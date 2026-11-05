@@ -113,3 +113,25 @@ import Testing
         #expect(Agenda.events(on: date(2026, 10, 3), in: [ends], calendar: calendar).isEmpty)
     }
 }
+
+@Suite("Join button timing") struct JoinTimingTests {
+    func event(start: TimeInterval, length: TimeInterval = 1800, allDay: Bool = false) -> CalendarEvent {
+        let t = Date(timeIntervalSince1970: 100_000)
+        return CalendarEvent(id: "e", title: "Call", start: t.addingTimeInterval(start), end: t.addingTimeInterval(start + length),
+                             isAllDay: allDay, calendarName: "Work", color: [0, 0, 1], joinURL: URL(string: "https://meet.google.com/x"))
+    }
+    let now = Date(timeIntervalSince1970: 100_000)
+
+    @Test func quietUntilFiveMinutesBefore() {
+        #expect(!Agenda.joinIsUrgent(event(start: 38 * 60), now: now))
+        #expect(!Agenda.joinIsUrgent(event(start: 5 * 60 + 1), now: now))
+        #expect(Agenda.joinIsUrgent(event(start: 5 * 60), now: now))
+        #expect(Agenda.joinIsUrgent(event(start: 60), now: now))
+    }
+
+    @Test func greenWhileTheCallRunsAndNotAfter() {
+        #expect(Agenda.joinIsUrgent(event(start: -600), now: now))
+        #expect(!Agenda.joinIsUrgent(event(start: -3600), now: now))
+        #expect(!Agenda.joinIsUrgent(event(start: 0, allDay: true), now: now))
+    }
+}

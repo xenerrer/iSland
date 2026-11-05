@@ -178,7 +178,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .store(in: &subscriptions)
 
         // Step aside while another app shows a video in full screen: something is playing and a window covers the screen.
-        fullscreen.start()
+        // The watcher only runs while its answer can matter (music playing and the setting on): it is the app's biggest idle wake-up.
+        Publishers.CombineLatest(widgets.music.$state.map(\.isPlaying), appearance.$hideInFullscreenVideo)
+            .map { $0 && $1 }
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [fullscreen] on in if on { fullscreen.start() } else { fullscreen.stop() } }
+            .store(in: &subscriptions)
         Publishers.CombineLatest3(fullscreen.$fullscreenDisplays, widgets.music.$state.map(\.isPlaying), appearance.$hideInFullscreenVideo)
             .map { displays, playing, enabled in playing && enabled ? displays : [] }
             .removeDuplicates()
@@ -195,7 +201,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Follow the screen when its resolution changes or a display is plugged in.
         NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification,
                                                object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.screenChanged() }
+            MainActor.assumeIsolated { self?.scheduleScreenChanged() }
         }
 
         appearance.$hideFromCapture
@@ -249,6 +255,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.store.prune(olderThan: 6 * 3600)
             }
         }
+        pruneTimer?.tolerance = 5 // housekeeping: let the system batch the wake-up with others
 
         if let helper = HookBinary.bundledHelperURL() { HookBinary.refreshIfInstalled(from: helper) }
         widgets.focus.onPhaseEnded = { phase in NSSound(named: phase.isBreak ? "Hero" : "Glass")?.play() }
@@ -302,9 +309,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func installContent(in panel: NSPanel, layout: IslandLayout, display: CGDirectDisplayID) {
-        panel.contentView = IslandHostingView(rootView: IslandView(
+        let host = IslandHostingView(rootView: IslandView(
             store: store, appearance: appearance, widgets: widgets, mirror: mirror, layout: layout, display: display,
             onSettings: { [weak self] in self?.showSettings() }))
+        host.sizingOptions = [] // the panel has a fixed frame: no re-measuring of the root view on every update
+        panel.contentView = host
     }
 
     private func layoutFor(_ screen: NSScreen) -> IslandLayout {
@@ -357,6 +366,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         IslandLog.write("display", "islands=\(islands.count) displays=\(screens.count) choice=\(appearance.displayChoice.raw) focus=\(store.focusDisplay)")
     }
 
+    private var screenWork: DispatchWorkItem?
+
+    /// A display change arrives as a burst of notifications: act once, when it has settled.
+    private func scheduleScreenChanged() {
+        screenWork?.cancel()
+        let work = DispatchWorkItem { [weak self] in MainActor.assumeIsolated { self?.screenChanged() } }
+        screenWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4, execute: work)
+    }
+
     private func focusDisplayUnderPointer() {
         let point = NSEvent.mouseLocation
         guard let id = NSScreen.screens.first(where: { $0.frame.contains(point) })?.displayID,
@@ -388,9 +407,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let i = args.firstIndex(of: "--auto-decide"), i + 1 < args.count { autoDecide = Decision(rawValue: args[i + 1]) }
 
         server = SocketServer { [autoDecide] event, responder in
-            NSLog("iSland: %@ session=%@%@%@", event.event, String(event.sessionId.prefix(8)),
-                  responder == nil ? "" : " (waiting for an answer)",
-                  verbose ? " pid=\(event.pid.map(String.init) ?? "-") tool=\(event.tool ?? "-") message=\(event.message ?? "-")" : "")
+            if verbose { // a line per event is steady log traffic: only when asked for
+                NSLog("iSland: %@ session=%@%@ pid=%@ tool=%@ message=%@", event.event, String(event.sessionId.prefix(8)),
+                      responder == nil ? "" : " (waiting for an answer)",
+                      event.pid.map(String.init) ?? "-", event.tool ?? "-", event.message ?? "-")
+            }
             guard let responder else {
                 Task { @MainActor in store.apply(event) }
                 return

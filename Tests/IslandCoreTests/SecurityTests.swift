@@ -139,3 +139,31 @@ import Testing
         #expect(await waitUntil { received.value == 1 }) // only the real one, and the server is still alive
     }
 }
+
+@Suite("Socket ownership") struct SocketOwnershipTests {
+    @Test func aSecondServerDoesNotStealALiveSocket() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("island-own-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let url = folder.appendingPathComponent("island.sock")
+        let first = SocketServer(url: url) { _, _ in }
+        try first.start()
+        defer { first.stop() }
+        let second = SocketServer(url: url) { _, _ in }
+        #expect(throws: (any Error).self) { try second.start() }
+        // The first is still the one answering, and the failed one leaves the file alone when it stops.
+        second.stop()
+        #expect(SocketServer.isListening(at: url.path))
+    }
+
+    @Test func aStaleFileIsReplaced() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("island-own-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let url = folder.appendingPathComponent("island.sock")
+        FileManager.default.createFile(atPath: url.path, contents: Data()) // a leftover, nobody listens
+        let server = SocketServer(url: url) { _, _ in }
+        try server.start()
+        defer { server.stop() }
+        #expect(SocketServer.isListening(at: url.path))
+    }
+}

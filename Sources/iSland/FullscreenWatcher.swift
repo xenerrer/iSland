@@ -15,6 +15,7 @@ final class FullscreenWatcher: ObservableObject {
     var screensProvider: () -> [NSScreen] = { NSScreen.screens }
 
     func start() {
+        guard timer == nil else { return }
         let center = NSWorkspace.shared.notificationCenter
         for name in [NSWorkspace.activeSpaceDidChangeNotification, NSWorkspace.didActivateApplicationNotification] {
             observers.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
@@ -24,6 +25,7 @@ final class FullscreenWatcher: ObservableObject {
         timer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.check() }
         }
+        timer?.tolerance = 1
         check()
     }
 
@@ -32,6 +34,7 @@ final class FullscreenWatcher: ObservableObject {
         timer = nil
         observers.forEach(NSWorkspace.shared.notificationCenter.removeObserver)
         observers = []
+        if !fullscreenDisplays.isEmpty { fullscreenDisplays = [] }
     }
 
     func check() {

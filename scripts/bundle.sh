@@ -34,6 +34,12 @@ cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
 # What is playing comes from a Perl script that loads this framework (see ThirdParty/mediaremote-adapter/README.md).
 cp -R "$ADAPTER/MediaRemoteAdapter.framework" "$APP/Contents/Frameworks/"
+if [ "$CONFIG" = release ]; then
+  # Smaller download: the framework only needs the Apple silicon half, and release binaries need no local symbols.
+  FW="$APP/Contents/Frameworks/MediaRemoteAdapter.framework/Versions/A/MediaRemoteAdapter"
+  if lipo -archs "$FW" | grep -q x86_64; then lipo "$FW" -thin arm64 -output "$FW.thin" && mv "$FW.thin" "$FW"; fi
+  strip -x "$APP/Contents/MacOS/$APP_NAME" "$APP/Contents/Helpers/island-hook"
+fi
 cp "$ADAPTER/mediaremote-adapter.pl" "$APP/Contents/Resources/"
 cp "$ADAPTER/LICENSE" "$APP/Contents/Resources/MediaRemoteAdapter-LICENSE.txt"
 
@@ -62,6 +68,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>LSMinimumSystemVersion</key><string>15.0</string>
   <key>LSApplicationCategoryType</key><string>public.app-category.developer-tools</string>
   <key>LSUIElement</key><true/>
+  <key>LSMultipleInstancesProhibited</key><true/>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSPrincipalClass</key><string>NSApplication</string>
   <key>NSCalendarsFullAccessUsageDescription</key><string>$CALENDAR_EN</string>

@@ -19,7 +19,7 @@ APP_PID=""
 cleanup() { [ -n "$APP_PID" ] && kill "$APP_PID" 2>/dev/null || true; rm -rf "$ISLAND_HOME"; }
 trap cleanup EXIT
 
-"$APP_BIN" --headless > "$ISLAND_HOME/app.log" 2>&1 &
+"$APP_BIN" --headless --verbose > "$ISLAND_HOME/app.log" 2>&1 &
 APP_PID=$!
 for _ in $(seq 1 50); do [ -S "$ISLAND_HOME/island.sock" ] && break; sleep 0.1; done
 rss() { ps -o rss= -p "$APP_PID" | tr -d ' '; }

@@ -93,7 +93,7 @@ struct ProgressLine: View {
 
     var body: some View {
         if let duration = state.duration, duration > 0 {
-            TimelineView(.periodic(from: .now, by: 1)) { context in
+            TimelineView(.periodic(from: Clock.epoch, by: 1)) { context in
                 let fraction = min(1, max(0, (state.elapsedNow(at: context.date) ?? 0) / duration))
                 GeometryReader { proxy in
                     ZStack(alignment: .leading) {
@@ -165,7 +165,7 @@ struct FocusCard: View {
     @ObservedObject var focus: FocusTimer
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { context in
+        TimelineView(.periodic(from: Clock.epoch, by: 1)) { context in
             HStack(spacing: 10) {
                 DotRing(elapsed: focus.fraction(at: context.date),
                         isBreak: focus.phase?.isBreak ?? false, paused: focus.isPaused, diameter: 26)

@@ -41,6 +41,7 @@ final class SessionIdentityResolver {
         timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { if self?.store.isOpen == true { self?.refresh() } }
         }
+        timer?.tolerance = 1
     }
 
     func stop() {

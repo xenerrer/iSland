@@ -12,6 +12,9 @@ struct AgentSession: Identifiable {
     var state: SessionState
     var detail: String
     var updated: Date
+    /// When the session first appeared. The list is ordered by it, so rows keep their place while agents work: ordering
+    /// by the latest event made them swap places under the pointer.
+    var firstSeen: Date = Date()
     /// The agent process, as seen by the hook. Only trusted for liveness while it never changes (see `pidIsStable`).
     var pid: Int?
     /// False once two events of the same session reported different pids: the hook then runs inside a throwaway
@@ -143,7 +146,12 @@ final class SessionStore: ObservableObject {
     }
 
     var ordered: [AgentSession] {
-        sessions.values.sorted { ($0.state == .needsAttention ? 0 : 1, $1.updated) < ($1.state == .needsAttention ? 0 : 1, $0.updated) }
+        sessions.values.sorted {
+            let a = $0.state == .needsAttention ? 0 : 1, b = $1.state == .needsAttention ? 0 : 1
+            if a != b { return a < b }
+            if $0.firstSeen != $1.firstSeen { return $0.firstSeen > $1.firstSeen }
+            return $0.id < $1.id
+        }
     }
 
     /// What the collapsed pill reports: work in progress and questions always, a finished job for a few seconds, and
@@ -209,7 +217,7 @@ final class SessionStore: ObservableObject {
         var s = sessions[e.sessionId] ?? AgentSession(
             id: e.sessionId,
             project: Self.projectName(for: e.cwd),
-            state: .idle, detail: "", updated: e.timestamp)
+            state: .idle, detail: "", updated: e.timestamp, firstSeen: e.timestamp)
         s.agent = e.agent
         if let pid = e.pid {
             if let known = s.pid, known != pid { s.pidIsStable = false }

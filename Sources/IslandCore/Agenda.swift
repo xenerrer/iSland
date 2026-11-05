@@ -59,6 +59,14 @@ public enum Agenda {
         case later(at: Date)
     }
 
+    /// How close to the start the join button turns green: before that it stays quiet, so it does not compete for attention.
+    public static let joinLead: TimeInterval = 5 * 60
+
+    /// True from `joinLead` before the start until the event ends.
+    public static func joinIsUrgent(_ event: CalendarEvent, now: Date) -> Bool {
+        !event.isAllDay && now >= event.start.addingTimeInterval(-joinLead) && now < event.end
+    }
+
     public static func timing(of event: CalendarEvent, now: Date, calendar: Calendar = .current) -> Timing {
         if event.start <= now {
             return .ongoing(minutesLeft: max(1, Int((event.end.timeIntervalSince(now) / 60).rounded(.up))))

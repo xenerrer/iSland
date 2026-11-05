@@ -101,8 +101,11 @@ struct EventRow: View {
                 .buttonStyle(IconButtonStyle())
                 .help(L10n.t("See how I look"))
                 .accessibilityLabel(L10n.t("See how I look"))
+                // Green only in the last 5 minutes before the call; before that it is a quiet grey (still there if you want in early).
+                let urgent = Agenda.joinIsUrgent(event, now: now)
                 Button(L10n.t("Join")) { NSWorkspace.shared.open(url) }
-                    .buttonStyle(CapsuleButtonStyle(fill: Color(red: 0.3, green: 0.85, blue: 0.45), foreground: Color.black.opacity(0.85)))
+                    .buttonStyle(CapsuleButtonStyle(fill: urgent ? Color(red: 0.3, green: 0.85, blue: 0.45) : Color.white.opacity(0.12),
+                                                    foreground: urgent ? Color.black.opacity(0.85) : Color.white.opacity(0.55)))
             }
         }
         .padding(.horizontal, 12)
