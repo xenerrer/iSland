@@ -59,8 +59,9 @@ import Testing
         // past the cap, one window over all of them that shows the fifth row only in part, so it is clear it scrolls
         let capped = IslandLayout.sessionRowHeights(sessions: 9)
         #expect(capped == [IslandLayout.scrollingListHeight])
-        #expect(IslandLayout.scrollingListHeight < height(IslandLayout.sessionRowHeights(sessions: 5)))
-        #expect(IslandLayout.scrollingListHeight > height(IslandLayout.sessionRowHeights(sessions: 4)))
+        let row = IslandLayout.sessionRowHeight, gap = IslandLayout.rowSpacing
+        #expect(IslandLayout.scrollingListHeight < 5 * row + 4 * gap) // less than five full rows
+        #expect(IslandLayout.scrollingListHeight > 4 * row + 3 * gap) // more than four: the fifth peeks out
         let tall = layout.size(open: true, sessions: 9, request: nil, widgets: none, closedStatus: false).height
         #expect(tall == height(capped))
     }
