@@ -94,7 +94,7 @@ final class SessionStore: ObservableObject {
             glassDisplays.insert(display)
         } else {
             glassTimers[display] = Timer.scheduledTimer(withTimeInterval: 0.75, repeats: false) { [weak self] _ in
-                MainActor.assumeIsolated { self?.glassDisplays.remove(display) }
+                MainActor.assumeIsolated { _ = self?.glassDisplays.remove(display) }
             }
         }
     }
