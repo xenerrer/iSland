@@ -226,14 +226,20 @@ struct IslandView: View {
                         .foregroundStyle(Color.white.opacity(0.6))
                         .frame(height: IslandLayout.rowHeight)
                 }
-                ForEach(store.ordered.prefix(IslandLayout.maxRows)) { session in
-                    SessionRow(session: session, onFocus: { store.focus(session.id) }, onDismiss: { store.dismiss(session.id) })
-                }
                 if store.ordered.count > IslandLayout.maxRows {
-                    Text(L10n.n("+%d more", store.ordered.count - IslandLayout.maxRows))
-                        .font(.system(size: 11.5))
-                        .foregroundStyle(Color.white.opacity(0.5))
-                        .frame(height: IslandLayout.rowHeight)
+                    // More than fit: all of them, in a window that scrolls (the half row at the bottom shows there is more).
+                    ScrollView(.vertical, showsIndicators: false) {
+                        VStack(spacing: IslandLayout.rowSpacing) {
+                            ForEach(store.ordered) { session in
+                                SessionRow(session: session, onFocus: { store.focus(session.id) }, onDismiss: { store.dismiss(session.id) })
+                            }
+                        }
+                    }
+                    .frame(height: IslandLayout.scrollingListHeight)
+                } else {
+                    ForEach(store.ordered) { session in
+                        SessionRow(session: session, onFocus: { store.focus(session.id) }, onDismiss: { store.dismiss(session.id) })
+                    }
                 }
                 // Music and calendar give way while a question is waiting.
                 if store.requests.isEmpty {

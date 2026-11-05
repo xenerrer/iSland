@@ -473,6 +473,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             AgentEvent(agent: "claude", sessionId: "d", cwd: "/demo/docs", event: "PreToolUse", tool: "Read", message: nil,
                        permissionMode: "plan", timestamp: now),
         ]
+        var extra: [AgentEvent] = []
+        if CommandLine.arguments.contains("--many") { // dev flag: more sessions than the list shows at once, to see it scroll
+            for (i, name) in ["billing", "mobile", "infra", "docs-site", "scripts"].enumerated() {
+                extra.append(AgentEvent(agent: "claude", sessionId: "m\(i)", cwd: "/demo/\(name)", event: "Stop", tool: nil, message: nil,
+                                       timestamp: now.addingTimeInterval(Double(-i - 1))))
+            }
+        }
         if CommandLine.arguments.contains("--agents") {
             // `--agents`: a session of each agent at work, to see each one's own spinner
             for (agent, id, folder) in [("claude", "a", "iSland"), ("gemini", "g", "site"), ("codex", "x", "api")] {
@@ -487,7 +494,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         } else if !CommandLine.arguments.contains("--no-agents") {
             // `--no-agents`: only music and calendar, the usual state when no agent is running.
-            for event in demo { store.apply(event) }
+            for event in demo + extra { store.apply(event) }
             store.applyIdentities([
                 "a": SessionIdentity(title: "Ajustar o visual do notch", chatId: nil),
                 "b": SessionIdentity(title: "Corrigir os testes da API de pagamentos", chatId: nil),

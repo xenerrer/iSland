@@ -53,12 +53,14 @@ import Testing
         #expect(without.height == height([IslandLayout.cardHeight(for: ask), IslandLayout.sessionRowHeight]))
     }
 
-    @Test func manySessionsAreCappedWithAMoreRow() {
+    @Test func manySessionsScrollInsideOneWindow() {
         #expect(IslandLayout.sessionRowHeights(sessions: 0).isEmpty)
         #expect(IslandLayout.sessionRowHeights(sessions: 5) == Array(repeating: IslandLayout.sessionRowHeight, count: 5))
-        // past the cap, a shorter line says how many more there are
+        // past the cap, one window over all of them that shows the fifth row only in part, so it is clear it scrolls
         let capped = IslandLayout.sessionRowHeights(sessions: 9)
-        #expect(capped == Array(repeating: IslandLayout.sessionRowHeight, count: 5) + [IslandLayout.rowHeight])
+        #expect(capped == [IslandLayout.scrollingListHeight])
+        #expect(IslandLayout.scrollingListHeight < height(IslandLayout.sessionRowHeights(sessions: 5)))
+        #expect(IslandLayout.scrollingListHeight > height(IslandLayout.sessionRowHeights(sessions: 4)))
         let tall = layout.size(open: true, sessions: 9, request: nil, widgets: none, closedStatus: false).height
         #expect(tall == height(capped))
     }

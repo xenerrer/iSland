@@ -142,11 +142,16 @@ struct IslandLayout: Equatable {
         sessions == 0 && !request && !widgets.any
     }
 
-    /// The session list: a row per session up to `maxRows`, then a line saying how many more there are.
+    /// Past `maxRows` the list scrolls inside a window that shows `maxRows - 0.5` rows: the half row peeking out at the bottom
+    /// says there is more.
+    static var scrollingListHeight: CGFloat {
+        (CGFloat(maxRows) - 0.5) * sessionRowHeight + CGFloat(maxRows - 1) * rowSpacing
+    }
+
+    /// The session list: a row per session up to `maxRows`, then one scrolling window over all of them.
     static func sessionRowHeights(sessions: Int) -> [CGFloat] {
-        var heights = Array(repeating: sessionRowHeight, count: min(sessions, maxRows))
-        if sessions > maxRows { heights.append(rowHeight) }
-        return heights
+        if sessions > maxRows { return [scrollingListHeight] }
+        return Array(repeating: sessionRowHeight, count: sessions)
     }
 
     /// The open island stacks its children with equal spacing: the question, the sessions, then music and calendar.
