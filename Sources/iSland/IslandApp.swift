@@ -43,6 +43,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     lazy var widgets = Widgets(appearance: appearance)
     lazy var identities = SessionIdentityResolver(store: store)
     lazy var currentChat = CurrentChatTracker(store: store)
+    lazy var notifier = Notifier(store: store, appearance: appearance, tracker: currentChat)
     let mirror = MirrorManager()
     private let fullscreen = FullscreenWatcher()
     private let guideWindow = OnboardingWindow()
@@ -224,16 +225,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 DispatchQueue.main.async { self?.focusDisplayUnderPointer() }
             }
             .store(in: &subscriptions)
-        store.onTurnFinished = { [appearance] session in
-            if appearance.sounds, (session.lastTurnSeconds ?? 0) >= 20 { NSSound(named: "Glass")?.play() }
+        store.onTurnFinished = { [appearance, notifier] session in
+            if appearance.sounds, (session.lastTurnSeconds ?? 0) >= AlertPolicy.minimumTurnSeconds { NSSound(named: "Glass")?.play() }
+            notifier.finished(session)
         }
-        store.onQuestion = { [appearance] in
+        store.onQuestion = { [appearance, store, notifier] sessionId in
             if appearance.sounds { NSSound(named: "Tink")?.play() }
+            notifier.needsYou(sessionId: sessionId, prompt: store.requests.last?.prompt.title ?? "Needs approval")
         }
+        notifier.onShowIsland = { [weak self] in
+            self?.store.expanded = true
+            self?.focusedHover?.hold(for: 8)
+        }
+        appearance.$notify.dropFirst().removeDuplicates().filter { $0 }
+            .sink { [notifier] _ in notifier.requestAuthorization() }
+            .store(in: &subscriptions)
 
         statusMenu = StatusMenu(appearance: appearance, widgets: widgets)
         statusMenu?.openPomodoroSetup = { [store] in store.pomodoroSetupOn = true }
         statusMenu?.openGuide = { [weak self] in self?.showGuide() }
+        statusMenu?.clearHistory = { [store] in store.clearHistory() }
         if !OnboardingModel.isDone { DispatchQueue.main.async { [weak self] in self?.showGuide() } } // the first run
 
         // Shortcuts exist only while a question is waiting.
@@ -265,9 +276,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             widgets.start()
             identities.start()
             currentChat.start()
+            notifier.start()
+            startHistory()
         }
         startServer(args: args)
         ensureLaunchAtLogin()
+    }
+
+    // MARK: What you were working on
+
+    private var historySaver: AnyCancellable?
+
+    /// Loads the remembered projects and keeps them on disk: every live session is noted a few seconds after things change,
+    /// and again when the app quits.
+    private func startHistory() {
+        var loaded = RecentHistory.load(from: IslandPaths.recentURL)
+        loaded.prune()
+        store.loadHistory(loaded)
+        store.$sessions
+            .dropFirst()
+            .debounce(for: .seconds(3), scheduler: DispatchQueue.main)
+            .sink { [store] _ in store.recordHistory() }
+            .store(in: &subscriptions)
+        historySaver = store.$history
+            .dropFirst()
+            .removeDuplicates()
+            .debounce(for: .seconds(1), scheduler: DispatchQueue.main)
+            .sink { history in history.save(to: IslandPaths.recentURL) }
     }
 
     // MARK: Login item
@@ -471,6 +506,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ note: Notification) {
+        if !islands.isEmpty {
+            store.recordHistory()
+            store.history.save(to: IslandPaths.recentURL)
+        }
         fullscreen.stop()
         mirror.stop()
         identities.stop()
@@ -532,6 +571,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 timestamp: now))
         }
         store.expanded = expanded
+        if CommandLine.arguments.contains("--recents") { // dev flag: projects remembered from before a restart
+            let now = Date()
+            store.loadHistory(RecentHistory(items: [
+                RecentProject(agent: "claude", project: "extracao-empresas", cwd: "/demo/extracao-empresas", title: "Extração de empresas por CNAE",
+                              chatId: "local_demo-1", lastActive: now.addingTimeInterval(-3 * 3600)),
+                RecentProject(agent: "claude", project: "landing", cwd: "/demo/landing", title: nil, chatId: nil,
+                              lastActive: now.addingTimeInterval(-26 * 3600)),
+            ]))
+        }
         if CommandLine.arguments.contains("--here") { store.currentSessionId = "a" } // dev flag: mark a row as the chat in front
         store.mirrorOn = CommandLine.arguments.contains("--mirror") // dev flag: the mirror, without a camera
         store.pomodoroSetupOn = CommandLine.arguments.contains("--pomodoro") // dev flag: the pomodoro setup panel

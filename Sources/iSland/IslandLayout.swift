@@ -138,14 +138,22 @@ struct IslandLayout: Equatable {
     // MARK: Island
 
     /// "No active agents" is only said when there is nothing else to show.
-    static func showsPlaceholder(sessions: Int, request: Bool, widgets: WidgetPresence) -> Bool {
-        sessions == 0 && !request && !widgets.any
+    static func showsPlaceholder(sessions: Int, request: Bool, widgets: WidgetPresence, recents: Int = 0) -> Bool {
+        sessions == 0 && !request && !widgets.any && recents == 0
     }
 
     /// Past `maxRows` the list scrolls inside a window that shows `maxRows - 0.5` rows: the half row peeking out at the bottom
     /// says there is more.
     static var scrollingListHeight: CGFloat {
         (CGFloat(maxRows) - 0.5) * sessionRowHeight + CGFloat(maxRows - 1) * rowSpacing
+    }
+
+    /// Projects that were active before a restart: a small heading, then a row each.
+    static let recentHeaderHeight: CGFloat = 20
+    static let recentRowHeight: CGFloat = 38
+    static let maxRecents = 4
+    static func recentHeights(count: Int) -> [CGFloat] {
+        count > 0 ? [recentHeaderHeight] + Array(repeating: recentRowHeight, count: count) : []
     }
 
     /// The session list: a row per session up to `maxRows`, then one scrolling window over all of them.
@@ -157,7 +165,7 @@ struct IslandLayout: Equatable {
     /// The open island stacks its children with equal spacing: the question, the sessions, then music and calendar.
     /// Widgets give way while a question is waiting, so the card has the island's full attention.
     func size(open: Bool, sessions: Int, request: PermissionPrompt?, widgets: WidgetPresence, closedStatus: Bool,
-              mode: IslandMode = .list) -> CGSize {
+              mode: IslandMode = .list, recents: Int = 0) -> CGSize {
         guard open else {
             let items = Self.pillItems(sessions: sessions, status: closedStatus, widgets: widgets)
             return CGSize(width: notch.width + (items.isEmpty ? 0 : Self.pillWing(items) * 2), height: notch.height)
@@ -182,9 +190,10 @@ struct IslandLayout: Equatable {
         }
         var children: [CGFloat] = []
         if let request { children.append(Self.cardHeight(for: request)) }
-        if Self.showsPlaceholder(sessions: sessions, request: request != nil, widgets: widgets) { children.append(Self.rowHeight) }
+        if Self.showsPlaceholder(sessions: sessions, request: request != nil, widgets: widgets, recents: recents) { children.append(Self.rowHeight) }
         children += Self.sessionRowHeights(sessions: sessions)
         if request == nil {
+            children += Self.recentHeights(count: recents)
             if widgets.focus { children.append(Self.compactWidgetHeight) }
             if widgets.music { children.append(Self.widgetHeight) }
             if widgets.calendar { children.append(Self.widgetHeight) }
@@ -200,7 +209,7 @@ struct IslandLayout: Equatable {
         var shown = widgets
         if hidden { shown.musicPlaying = false; shown.focusRunning = false }
         return size(open: store.isOpen(on: display), sessions: store.sessions.count, request: store.requests.first?.prompt, widgets: shown,
-                    closedStatus: store.closedStatus != nil && !hidden, mode: store.mode)
+                    closedStatus: store.closedStatus != nil && !hidden, mode: store.mode, recents: store.visibleRecents.count)
     }
 }
 

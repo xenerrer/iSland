@@ -115,6 +115,15 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         delayItem.submenu = delayMenu
         menu.addItem(delayItem)
 
+        let notifications = NSMenuItem(title: L10n.t("Notifications"), action: #selector(toggleNotifications), keyEquivalent: "")
+        notifications.target = self
+        notifications.state = appearance.notify ? .on : .off
+        menu.addItem(notifications)
+
+        let forget = NSMenuItem(title: L10n.t("Forget recent projects"), action: #selector(forgetRecent), keyEquivalent: "")
+        forget.target = self
+        menu.addItem(forget)
+
         let sounds = NSMenuItem(title: L10n.t("Sounds"), action: #selector(toggleSounds), keyEquivalent: "")
         sounds.target = self
         sounds.state = appearance.sounds ? .on : .off
@@ -251,6 +260,13 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     }
 
     @objc private func toggleSounds() { appearance.sounds.toggle() }
+
+    @objc private func toggleNotifications() { appearance.notify.toggle() }
+
+    @objc private func forgetRecent() { clearHistory() }
+
+    /// Wired by the app: wipes the remembered projects.
+    var clearHistory: () -> Void = {}
 
     @objc private func toggleHideInFullscreen() { appearance.hideInFullscreenVideo.toggle() }
 

@@ -1,3 +1,4 @@
+import AppKit
 import CoreGraphics
 import Foundation
 import IslandCore
@@ -28,6 +29,8 @@ struct AgentSession: Identifiable {
     var lastTurnSeconds: Int?
     /// The name of the chat, as the Claude app (or `/rename`) shows it. nil until found; the folder name stands in.
     var title: String?
+    /// The folder the agent works in.
+    var cwd: String?
     /// The Claude app's own id for this chat (`local_...`). Only chats that live in the Claude app have one.
     var chatId: String?
     /// Where the agent writes this conversation; the name can be read from there when the Claude app does not know it.
@@ -123,7 +126,7 @@ final class SessionStore: ObservableObject {
     /// A question was handed back to the chat or terminal: the app goes there (after a beat, so its prompt can appear).
     var onHandBack: ((String) -> Void)?
     /// A new question was queued by a real hook.
-    var onQuestion: (() -> Void)?
+    var onQuestion: ((String) -> Void)?
 
     /// How long the green "finished" dot stays beside the notch. 0 never shows it.
     private let doneGlance: TimeInterval
@@ -268,6 +271,7 @@ final class SessionStore: ObservableObject {
             }
         default: break
         }
+        if let cwd = e.cwd, !cwd.isEmpty { s.cwd = cwd }
         s.updated = e.timestamp
         sessions[e.sessionId] = s
         if finishedTurn { onTurnFinished?(s) }
@@ -285,6 +289,7 @@ final class SessionStore: ObservableObject {
         retireRequests(forSession: sessionId)
         sessions[sessionId] = nil
         dismissed[sessionId] = session.updated // event time, like everything else here: later events may revive it
+        history.remove(key: Self.historyKey(for: session)) // you cleared it: it is not coming back as a suggestion either
         if overall != .idle || sessions.isEmpty { cancelFinished() }
     }
 
@@ -325,7 +330,7 @@ final class SessionStore: ObservableObject {
     func enqueue(_ e: AgentEvent, id: UUID, responder: Responder) {
         guard let prompt = e.permission else { responder.reply(DecisionReply(.terminal)); return }
         apply(e)
-        onQuestion?()
+        onQuestion?(e.sessionId)
         responders[id] = responder
         requests.append(PendingRequest(
             id: id, sessionId: e.sessionId,
@@ -451,6 +456,54 @@ final class SessionStore: ObservableObject {
             else { IslandLog.write("anomaly", "no app found hosting the session (pid \(pid)): nowhere to go") }
         case .nowhere:
             IslandLog.write("anomaly", "focus requested for a session with no chat and no process")
+        }
+    }
+
+    // MARK: - What you were working on
+
+    /// Projects seen recently, kept on disk so they survive a restart of the Mac, the Claude app or iSland.
+    @Published private(set) var history = RecentHistory()
+
+    static func historyKey(for session: AgentSession) -> String {
+        RecentProject.key(agent: session.agent, cwd: session.cwd, chatId: session.chatId, project: session.project)
+    }
+
+    /// Notes every live session in the history (called a moment after things change, and when the app quits).
+    func recordHistory(now: Date = Date()) {
+        var next = history
+        for session in sessions.values {
+            next.record(RecentProject(agent: session.agent, project: session.project, cwd: session.cwd, title: session.title,
+                                      chatId: session.chatId, lastActive: session.updated))
+        }
+        next.prune(now: now)
+        if next != history { history = next }
+    }
+
+    func loadHistory(_ loaded: RecentHistory) { history = loaded }
+
+    /// The projects to offer, when the live list leaves room: not live now, newest first, and none while a question waits.
+    var visibleRecents: [RecentProject] {
+        guard requests.isEmpty else { return [] }
+        let limit = min(IslandLayout.maxRecents, max(0, IslandLayout.maxRows + 1 - sessions.count))
+        let liveKeys = Set(sessions.values.map(Self.historyKey(for:)))
+        let liveFolders = Set(sessions.values.compactMap { s in s.cwd.map { "\(s.agent)|\($0)" } })
+        return history.resumable(liveKeys: liveKeys, liveFolders: liveFolders, limit: limit)
+    }
+
+    func forget(_ project: RecentProject) { history.remove(key: project.key) }
+
+    func clearHistory() { history = RecentHistory() }
+
+    /// Takes you back to a project: its chat in the Claude app, or a new chat in its folder, or the folder itself.
+    func resume(_ project: RecentProject) {
+        if let chatId = project.chatId, let link = ClaudeDesktop.deepLink(toChat: chatId) {
+            ProcessTree.open(chat: link)
+        } else if project.agent == "claude", let cwd = project.cwd, let link = ClaudeDesktop.newChatLink(inFolder: cwd) {
+            ProcessTree.open(chat: link)
+        } else if let cwd = project.cwd, cwd.hasPrefix("/") {
+            NSWorkspace.shared.open(URL(fileURLWithPath: cwd, isDirectory: true))
+        } else {
+            IslandLog.write("anomaly", "nothing to resume for a project without chat or folder")
         }
     }
 

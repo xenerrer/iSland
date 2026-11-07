@@ -51,6 +51,19 @@ final class CurrentChatTracker {
         timer = nil
     }
 
+    /// True when `sessionId` is the one in front of you right now (read afresh, for deciding about a notification).
+    func isLooking(at sessionId: String) -> Bool {
+        guard let front = NSWorkspace.shared.frontmostApplication, front.bundleIdentifier != Bundle.main.bundleIdentifier else { return false }
+        if front.bundleIdentifier == ClaudeDesktop.bundleIdentifier {
+            guard let chatId = ClaudeDesktop.currentChatId() else { return false }
+            return store.sessions[sessionId]?.chatId == chatId
+        }
+        let hosted = store.sessions.values.filter { session in
+            session.pid.flatMap { ProcessTree.hostApplication(of: $0)?.processIdentifier } == front.processIdentifier
+        }
+        return hosted.count == 1 && hosted[0].id == sessionId
+    }
+
     func refresh() {
         guard let front = NSWorkspace.shared.frontmostApplication,
               front.bundleIdentifier != Bundle.main.bundleIdentifier else { return }

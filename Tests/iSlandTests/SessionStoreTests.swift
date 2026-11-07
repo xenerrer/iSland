@@ -137,7 +137,7 @@ import Testing
     @Test func questionsNotifyTheApp() {
         let store = SessionStore()
         var asked = 0
-        store.onQuestion = { asked += 1 }
+        store.onQuestion = { _ in asked += 1 }
         store.showPreview(question(at: 1, toolUseId: "tu1")) // previews are not real questions
         #expect(asked == 0)
     }
@@ -743,5 +743,46 @@ import Testing
         store.markCurrent("x") // what `focus` does before it opens the chat
         #expect(store.currentSessionId == "x")
         #expect(store.currentOverride?.id == "x")
+    }
+}
+
+@MainActor
+@Suite("What you were working on") struct HistoryStoreTests {
+    let t0 = Date() // recent, or the history would consider it expired
+
+    func working(_ id: String, cwd: String) -> AgentEvent {
+        AgentEvent(agent: "claude", sessionId: id, cwd: cwd, event: "UserPromptSubmit", tool: nil, message: nil, timestamp: t0)
+    }
+
+    @Test func liveSessionsAreRememberedAndSurviveARestart() {
+        let store = SessionStore()
+        store.apply(working("a", cwd: "/work/alpha"))
+        store.apply(working("b", cwd: "/work/beta"))
+        store.recordHistory(now: t0)
+        #expect(Set(store.history.items.map(\.project)) == ["alpha", "beta"])
+
+        // A new run of the app: nothing is live, the remembered projects are offered.
+        let reborn = SessionStore()
+        reborn.loadHistory(store.history)
+        #expect(reborn.visibleRecents.count == 2)
+    }
+
+    @Test func aLiveProjectIsNotOfferedAgain() {
+        let store = SessionStore()
+        store.apply(working("a", cwd: "/work/alpha"))
+        store.recordHistory(now: t0)
+        #expect(store.visibleRecents.isEmpty) // alpha is live
+        store.dismiss("a") // clearing the row forgets it
+        #expect(store.history.items.isEmpty)
+    }
+
+    @Test func nothingIsOfferedWhileAQuestionWaits() {
+        let store = SessionStore()
+        store.loadHistory(RecentHistory(items: [RecentProject(agent: "claude", project: "old", cwd: "/work/old", title: nil, chatId: nil, lastActive: Date())]))
+        #expect(store.visibleRecents.count == 1)
+        store.showPreview(AgentEvent(agent: "claude", sessionId: "q", cwd: "/w/q", event: "PermissionRequest", tool: "Bash", message: nil,
+                                     permission: PermissionPrompt(tool: "Bash", title: "Run command", detail: "ls", alwaysLabel: nil, waitSeconds: 30),
+                                     timestamp: t0))
+        #expect(store.visibleRecents.isEmpty)
     }
 }

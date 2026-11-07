@@ -14,6 +14,9 @@ O iSland roda como o usuário, sem rede, e conversa com os agentes (Claude Code,
 | Câmera/Fotos/Agenda | Uso indevido | Permissão inline, câmera só com o espelho aberto, nada gravado/enviado, fotos só na pasta Imagens após consentimento |
 | Rede | Exfiltração | O app não abre conexões (verificado: 0 conexões) |
 
+| Histórico de projetos | Revelar o que você estava fazendo | `~/.island/recent.json` 0600 (pasta 0700): só nome da pasta, caminho, título do chat e hora; sem conteúdo de conversa; expira em 48 h; "Esquecer projetos recentes" apaga tudo |
+| Notificações | Texto na tela de bloqueio | Só nome do chat, tempo e tipo da pergunta; nunca o comando ou o pedido |
+
 ## Riscos residuais (honestos)
 - Build ad-hoc, sem Hardened Runtime nem notarização: o Gatekeeper avisará. **Antes de vender: Developer ID + notarização.**
 - Qualquer processo do **mesmo usuário** consegue falar com o socket (inevitável em um socket local; mitigado pelo item de aprovações acima).

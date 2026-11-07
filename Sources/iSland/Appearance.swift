@@ -34,6 +34,10 @@ final class Appearance: ObservableObject {
         didSet { UserDefaults.standard.set(style.rawValue, forKey: Self.styleKey) }
     }
     /// A soft sound when a question arrives and when a long turn finishes. Off by default.
+    /// System notifications when a job finishes or an agent needs you (see `Notifier`).
+    @Published var notify: Bool {
+        didSet { UserDefaults.standard.set(notify, forKey: "notify") }
+    }
     @Published var sounds: Bool {
         didSet { UserDefaults.standard.set(sounds, forKey: "sounds") }
     }
@@ -78,6 +82,7 @@ final class Appearance: ObservableObject {
         // `iSland -style clear` works too: command-line arguments land in UserDefaults.
         style = UserDefaults.standard.string(forKey: Self.styleKey).flatMap(IslandStyle.init(rawValue:)) ?? .glass
         sounds = UserDefaults.standard.bool(forKey: "sounds")
+        notify = UserDefaults.standard.object(forKey: "notify") as? Bool ?? true
         hideFromCapture = UserDefaults.standard.bool(forKey: "hideFromCapture")
         showMusic = UserDefaults.standard.object(forKey: "showMusic") as? Bool ?? true
         showCalendar = UserDefaults.standard.object(forKey: "showCalendar") as? Bool ?? true

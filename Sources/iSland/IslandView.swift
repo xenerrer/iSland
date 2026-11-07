@@ -32,7 +32,7 @@ struct IslandView: View {
     /// shrinks around it (the shape clips it), so nothing in it reflows or travels sideways during the animation.
     private var contentWidth: CGFloat {
         layout.size(open: true, sessions: store.sessions.count, request: store.requests.first?.prompt, widgets: presence,
-                    closedStatus: false, mode: store.mode).width
+                    closedStatus: false, mode: store.mode, recents: store.visibleRecents.count).width
     }
     /// Glass only when open: the closed pill stays black so it fuses with the hardware notch.
     private var usesGlass: Bool { open && appearance.style != .solid && !appearance.reduceTransparency }
@@ -223,7 +223,8 @@ struct IslandView: View {
                         store.answer(request.id, $0)
                     }
                 }
-                if IslandLayout.showsPlaceholder(sessions: store.sessions.count, request: !store.requests.isEmpty, widgets: presence) {
+                if IslandLayout.showsPlaceholder(sessions: store.sessions.count, request: !store.requests.isEmpty, widgets: presence,
+                                                 recents: store.visibleRecents.count) {
                     Text(L10n.t("No active agents"))
                         .font(.system(size: 13))
                         .foregroundStyle(Color.white.opacity(0.6))
@@ -244,6 +245,18 @@ struct IslandView: View {
                     ForEach(store.ordered) { session in
                         SessionRow(session: session, isCurrent: store.currentSessionId == session.id, hover: store.rowHover,
                                        onFocus: { store.focus(session.id) }, onDismiss: { store.dismiss(session.id) })
+                    }
+                }
+                // What you were working on before the restart, when nothing live fills the list.
+                let recents = store.visibleRecents
+                if !recents.isEmpty {
+                    Text(L10n.t("Were active"))
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color.white.opacity(0.45))
+                        .frame(maxWidth: .infinity, minHeight: IslandLayout.recentHeaderHeight, maxHeight: IslandLayout.recentHeaderHeight, alignment: .leading)
+                        .padding(.leading, 4)
+                    ForEach(recents) { project in
+                        RecentRow(project: project, hover: store.rowHover, onResume: { store.resume(project) }, onForget: { store.forget(project) })
                     }
                 }
                 // Music and calendar give way while a question is waiting.
@@ -501,6 +514,61 @@ struct SessionRow: View {
         .background(HoverTracker { [hover, id = session.id] inside in hover.set(id, inside) })
         .contentShape(Rectangle())
         .onTapGesture(perform: onFocus) // jump to this chat (or to the app that hosts the session)
+    }
+}
+
+/// A project that was active before a restart: click to go back to it, × to forget it.
+struct RecentRow: View {
+    let project: RecentProject
+    @ObservedObject var hover: RowHover
+    let onResume: () -> Void
+    let onForget: () -> Void
+
+    private static let formatter: RelativeDateTimeFormatter = {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter
+    }()
+
+    private var hovered: Bool { hover.sessionId == project.key }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "arrow.uturn.backward.circle")
+                .font(.system(size: 13))
+                .foregroundStyle(Color.white.opacity(0.4))
+                .frame(width: 16, height: 16)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(project.title ?? project.project)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(0.78))
+                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    if project.title != nil { FolderLabel(name: project.project) }
+                    Text(Self.formatter.localizedString(for: project.lastActive, relativeTo: Date()))
+                        .font(.system(size: 10.5))
+                        .foregroundStyle(Color.white.opacity(0.4))
+                        .lineLimit(1)
+                }
+            }
+            Spacer(minLength: 8)
+            Button(action: onForget) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 8.5, weight: .bold))
+                    .frame(width: 22, height: 24)
+            }
+            .buttonStyle(DismissButtonStyle())
+            .help(L10n.t("Forget this project"))
+            .accessibilityLabel(L10n.t("Forget this project"))
+        }
+        .frame(height: IslandLayout.recentRowHeight)
+        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.white.opacity(hovered ? 0.07 : 0))
+            .padding(.horizontal, -8).padding(.vertical, -1)
+            .animation(.easeOut(duration: 0.12), value: hovered))
+        .background(HoverTracker { [hover, key = project.key] inside in hover.set(key, inside) })
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onResume)
+        .help(L10n.t("Go back to this project"))
     }
 }
 
