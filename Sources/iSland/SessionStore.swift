@@ -123,6 +123,25 @@ final class SessionStore: ObservableObject {
 
     /// A turn just finished (the session carries its duration). The app uses it for the optional sound.
     var onTurnFinished: ((AgentSession) -> Void)?
+
+    /// A job that just finished, announced under the notch for a few seconds (see `showToast`).
+    struct FinishToast: Equatable { var sessionId: String; var title: String; var seconds: Int }
+    @Published private(set) var toast: FinishToast?
+    private var toastTimer: Timer?
+
+    func showToast(_ toast: FinishToast, for duration: TimeInterval = 6) {
+        self.toast = toast
+        toastTimer?.invalidate()
+        toastTimer = Timer.scheduledTimer(withTimeInterval: duration, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated { self?.dismissToast() }
+        }
+    }
+
+    func dismissToast() {
+        toastTimer?.invalidate()
+        toastTimer = nil
+        if toast != nil { toast = nil }
+    }
     /// A question was handed back to the chat or terminal: the app goes there (after a beat, so its prompt can appear).
     var onHandBack: ((String) -> Void)?
     /// A new question was queued by a real hook.

@@ -74,6 +74,9 @@ struct IslandLayout: Equatable {
     static let mediaSingleHeight: CGFloat = 84
     static let calendarTileHeight: CGFloat = 64
     static let placeholderTileHeight: CGFloat = 44
+    /// The "finished" toast under the collapsed notch.
+    static let toastWidth: CGFloat = 330
+    static let toastHeight: CGFloat = 48
     /// Extra room on each side of the physical notch where status indicators live when collapsed (only while there is
     /// something to report: otherwise the pill is just the notch).
     static let indicatorWing: CGFloat = 30
@@ -223,10 +226,12 @@ struct IslandLayout: Equatable {
     /// The open island is a grid of tiles with equal gaps: the agents, what you were working on, music and pomodoro, the
     /// calendar. A waiting question takes the grid (see `tileHeights`).
     func size(open: Bool, sessions: Int, request: PermissionPrompt?, widgets: WidgetPresence, closedStatus: Bool,
-              mode: IslandMode = .list, recents: Int = 0) -> CGSize {
+              mode: IslandMode = .list, recents: Int = 0, toast: Bool = false) -> CGSize {
         guard open else {
             let items = Self.pillItems(sessions: sessions, status: closedStatus, widgets: widgets)
-            return CGSize(width: notch.width + (items.isEmpty ? 0 : Self.pillWing(items) * 2), height: notch.height)
+            let width = notch.width + (items.isEmpty ? 0 : Self.pillWing(items) * 2)
+            if toast { return CGSize(width: max(width, Self.toastWidth), height: notch.height + Self.toastHeight) }
+            return CGSize(width: width, height: notch.height)
         }
         if request == nil { // a question takes the island back from the mirror and the folder list
             switch mode {
@@ -258,7 +263,8 @@ struct IslandLayout: Equatable {
         var shown = widgets
         if hidden { shown.musicPlaying = false; shown.focusRunning = false }
         return size(open: store.isOpen(on: display), sessions: store.sessions.count, request: store.requests.first?.prompt, widgets: shown,
-                    closedStatus: store.closedStatus != nil && !hidden, mode: store.mode, recents: store.visibleRecents.count)
+                    closedStatus: store.closedStatus != nil && !hidden, mode: store.mode, recents: store.visibleRecents.count,
+                    toast: store.toast != nil && !hidden)
     }
 }
 

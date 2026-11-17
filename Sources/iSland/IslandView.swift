@@ -36,7 +36,11 @@ struct IslandView: View {
     }
     /// Glass only when open: the closed pill stays black so it fuses with the hardware notch.
     private var usesGlass: Bool { open && appearance.style != .solid && !appearance.reduceTransparency }
-    private var shape: NotchShape { NotchShape(topRadius: open ? 14 : IslandLayout.closedEar, bottomRadius: open ? IslandLayout.islandBottomRadius : 12) }
+    private var showsToast: Bool { !open && store.toast != nil && !store.hiddenPillDisplays.contains(display) }
+    private var shape: NotchShape {
+        NotchShape(topRadius: open ? 14 : IslandLayout.closedEar,
+                   bottomRadius: open ? IslandLayout.islandBottomRadius : (showsToast ? 20 : 12))
+    }
     private var motion: Animation { appearance.reduceMotion ? .easeOut(duration: 0.12) : (open ? Motion.open(appearance.motionStyle) : Motion.close(appearance.motionStyle)) }
 
     /// Without a hardware notch, the collapsed pill disappears while it has nothing to report.
@@ -91,6 +95,9 @@ struct IslandView: View {
                         pomodoroContent
                     } else if open {
                         openContent
+                    } else if showsToast, let toast = store.toast {
+                        toastContent(toast)
+                            .transition(.opacity.animation(.easeOut(duration: 0.15).delay(0.12)))
                     } else if !pillItems.isEmpty {
                         closedIndicators
                             .transition(.asymmetric(insertion: .opacity.animation(.easeIn(duration: 0.15).delay(0.25)), // once the pill is pill-sized
@@ -158,6 +165,37 @@ struct IslandView: View {
         case .status:
             if let status = store.closedStatus { StatusGlyph(state: status, agent: store.workingAgent) }
         }
+    }
+
+    // MARK: Finished toast
+
+    /// Under the notch for a few seconds when a job finishes while you are elsewhere: a click goes to that chat.
+    private func toastContent(_ toast: SessionStore.FinishToast) -> some View {
+        VStack(spacing: 0) {
+            Color.clear.frame(height: layout.notch.height)
+            Button {
+                store.focus(toast.sessionId)
+                store.dismissToast()
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(Color(red: 0.30, green: 0.85, blue: 0.45))
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(toast.title).font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.white).lineLimit(1)
+                        Text(L10n.detail("Done") + " · " + DurationFormat.short(toast.seconds))
+                            .font(.system(size: 11)).foregroundStyle(Color.white.opacity(0.8))
+                    }
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 18)
+                .frame(height: IslandLayout.toastHeight, alignment: .center)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(toast.title + ", " + L10n.detail("Done"))
+        }
+        .frame(width: max(IslandLayout.toastWidth, layout.notch.width), alignment: .top)
     }
 
     // MARK: Mirror

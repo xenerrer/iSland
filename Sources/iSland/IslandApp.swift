@@ -225,9 +225,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 DispatchQueue.main.async { self?.focusDisplayUnderPointer() }
             }
             .store(in: &subscriptions)
-        store.onTurnFinished = { [appearance, notifier] session in
+        store.onTurnFinished = { [appearance, notifier, store, currentChat] session in
             if appearance.sounds, (session.lastTurnSeconds ?? 0) >= AlertPolicy.minimumTurnSeconds { NSSound(named: "Glass")?.play() }
             notifier.finished(session)
+            // A reminder under the notch, for the one you would otherwise forget: a long job, in a chat you are not looking at.
+            if appearance.notify, AlertPolicy.shouldAnnounceFinish(turnSeconds: session.lastTurnSeconds,
+                                                                    userIsLooking: currentChat.isLooking(at: session.id)) {
+                store.showToast(.init(sessionId: session.id, title: session.title ?? session.project, seconds: session.lastTurnSeconds ?? 0))
+            }
         }
         store.onQuestion = { [appearance, store, notifier] sessionId in
             if appearance.sounds { NSSound(named: "Tink")?.play() }
@@ -584,6 +589,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 RecentProject(agent: "claude", project: "landing", cwd: "/demo/landing", title: nil, chatId: nil,
                               lastActive: now.addingTimeInterval(-26 * 3600)),
             ]))
+        }
+        if CommandLine.arguments.contains("--toast") { // dev flag: the finished toast
+            store.showToast(.init(sessionId: "a", title: "Ajustar o visual do notch", seconds: 192), for: 3600)
         }
         if CommandLine.arguments.contains("--here") { store.currentSessionId = "a" } // dev flag: mark a row as the chat in front
         store.mirrorOn = CommandLine.arguments.contains("--mirror") // dev flag: the mirror, without a camera
