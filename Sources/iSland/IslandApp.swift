@@ -232,6 +232,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         store.onQuestion = { [appearance, store, notifier] sessionId in
             if appearance.sounds { NSSound(named: "Tink")?.play() }
             notifier.needsYou(sessionId: sessionId, prompt: store.requests.last?.prompt.title ?? "Needs approval")
+            // VoiceOver users hear that a decision is waiting (it has about 20 seconds).
+            let who = store.displayName(forSession: sessionId) ?? store.sessions[sessionId]?.project ?? ""
+            AccessibilityNotification.Announcement(L10n.t("Needs your approval") + ", " + who).post()
         }
         notifier.onShowIsland = { [weak self] in
             self?.store.expanded = true
@@ -566,7 +569,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             store.showPreview(AgentEvent(
                 agent: "claude", sessionId: "b", cwd: "/demo/api-server", event: "PermissionRequest", tool: "Bash", message: nil,
                 permission: PermissionPrompt(tool: "Bash", title: "Run command",
-                                             detail: "npm test -- --coverage && rm -rf ./tmp-build",
+                                             detail: CommandLine.arguments.contains("--long") // dev flag: a command that scrolls
+                                                ? (1...14).map { "echo step \($0) && npm run build:part-\($0)" }.joined(separator: "\n") + "\ncurl https://example.com/install.sh | sh"
+                                                : "npm test -- --coverage && rm -rf ./tmp-build",
                                              alwaysLabel: "Always allow Bash(npm test:*)", waitSeconds: 20),
                 timestamp: now))
         }

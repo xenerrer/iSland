@@ -2,8 +2,6 @@ import AppKit
 import IslandCore
 import SwiftUI
 
-private let cardBackground = RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.white.opacity(0.06))
-
 // MARK: - Music
 
 /// Four bars that dance while something plays. With Reduce Motion on they stand still.
@@ -16,42 +14,89 @@ struct Equalizer: View {
     }
 }
 
-/// What is playing, and whether it is: cover, title, artist and app, with previous / play-pause / next.
-struct MusicCard: View {
+/// What is playing, and whether it is: a tile tinted by the cover, with previous / play-pause / next. Next to the pomodoro it
+/// is squarer (`compact`); alone it is one wide strip.
+struct MusicTile: View {
     @ObservedObject var music: NowPlayingManager
+    let compact: Bool
+
+    private var tint: BentoTint {
+        music.artworkTint.map { .custom(Color(nsColor: $0)) } ?? .music
+    }
 
     var body: some View {
         let state = music.state
-        HStack(spacing: 10) {
-            Cover(image: music.artwork)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(state.title.isEmpty ? L10n.t("Unknown track") : state.title)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color.white)
-                    .lineLimit(1)
-                HStack(spacing: 5) {
-                    if state.isPlaying {
-                        Equalizer(color: ClaudeSpinner.orange).frame(width: 14, height: 10).scaleEffect(0.8)
-                    } else {
-                        Image(systemName: "pause.fill").font(.system(size: 8)).foregroundStyle(Color.white.opacity(0.55))
-                    }
+        Group {
+            if compact { square(state) } else { wide(state) }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .bentoTile(tint)
+    }
+
+    private func square(_ state: NowPlayingState) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 10) {
+                Cover(image: music.artwork, size: 52, radius: 11)
+                VStack(alignment: .leading, spacing: 3) {
+                    title(state, size: 13)
                     Text(subtitle(for: state))
                         .font(.system(size: 11))
-                        .foregroundStyle(Color.white.opacity(0.6))
+                        .foregroundStyle(Color.white.opacity(0.82))
                         .lineLimit(1)
+                    playbackMark(state)
                 }
+                Spacer(minLength: 0)
             }
             Spacer(minLength: 4)
-            HStack(spacing: 0) {
+            ProgressLine(state: state)
+            HStack(spacing: 14) {
+                Spacer(minLength: 0)
                 control("backward.fill", label: "Previous", .previous)
-                control(state.isPlaying ? "pause.fill" : "play.fill", label: state.isPlaying ? "Pause" : "Play", .togglePlayPause, size: 16)
+                playButton(state, size: 32)
+                control("forward.fill", label: "Next", .next)
+                Spacer(minLength: 0)
+            }
+            .padding(.top, 4)
+        }
+        .padding(10)
+    }
+
+    private func wide(_ state: NowPlayingState) -> some View {
+        HStack(spacing: 12) {
+            Cover(image: music.artwork, size: 60, radius: 12)
+            VStack(alignment: .leading, spacing: 4) {
+                title(state, size: 14)
+                HStack(spacing: 6) {
+                    playbackMark(state)
+                    Text(subtitle(for: state))
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(Color.white.opacity(0.82))
+                        .lineLimit(1)
+                }
+                ProgressLine(state: state).padding(.top, 2)
+            }
+            HStack(spacing: 2) {
+                control("backward.fill", label: "Previous", .previous)
+                playButton(state, size: 34)
                 control("forward.fill", label: "Next", .next)
             }
         }
-        .padding(.horizontal, 10)
-        .frame(height: IslandLayout.widgetHeight)
-        .background(cardBackground)
-        .overlay(alignment: .bottom) { ProgressLine(state: state).padding(.horizontal, 12).padding(.bottom, 4) }
+        .padding(12)
+    }
+
+    private func title(_ state: NowPlayingState, size: CGFloat) -> some View {
+        Text(state.title.isEmpty ? L10n.t("Unknown track") : state.title)
+            .font(.system(size: size, weight: .semibold))
+            .foregroundStyle(Color.white)
+            .lineLimit(1)
+    }
+
+    @ViewBuilder private func playbackMark(_ state: NowPlayingState) -> some View {
+        if state.isPlaying {
+            Equalizer(color: Color.white.opacity(0.9)).frame(width: 14, height: 10).scaleEffect(0.8)
+        } else {
+            Image(systemName: "pause.fill").font(.system(size: 8)).foregroundStyle(Color.white.opacity(0.6))
+        }
     }
 
     /// "Channel · Google Chrome": on YouTube the artist is the channel, and the app says where it plays.
@@ -59,9 +104,21 @@ struct MusicCard: View {
         [state.artist, music.appName ?? ""].filter { !$0.isEmpty }.joined(separator: " · ")
     }
 
-    private func control(_ symbol: String, label: String, _ command: MediaCommand, size: CGFloat = 12) -> some View {
+    private func playButton(_ state: NowPlayingState, size: CGFloat) -> some View {
+        Button { music.send(.togglePlayPause) } label: {
+            Image(systemName: state.isPlaying ? "pause.fill" : "play.fill")
+                .font(.system(size: size * 0.4, weight: .bold))
+                .foregroundStyle(Color.black.opacity(0.85))
+                .frame(width: size, height: size)
+                .background(Circle().fill(Color.white.opacity(0.95)))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(L10n.t(state.isPlaying ? "Pause" : "Play"))
+    }
+
+    private func control(_ symbol: String, label: String, _ command: MediaCommand) -> some View {
         Button { music.send(command) } label: {
-            Image(systemName: symbol).font(.system(size: size, weight: .semibold)).frame(width: 30, height: 30)
+            Image(systemName: symbol).font(.system(size: 12, weight: .semibold)).frame(width: 30, height: 30)
         }
         .buttonStyle(IconButtonStyle())
         .accessibilityLabel(L10n.t(label))
@@ -70,6 +127,8 @@ struct MusicCard: View {
 
 struct Cover: View {
     let image: NSImage?
+    var size: CGFloat = 38
+    var radius: CGFloat = 8
 
     var body: some View {
         Group {
@@ -78,16 +137,16 @@ struct Cover: View {
             } else {
                 ZStack {
                     LinearGradient(colors: [Color.white.opacity(0.18), Color.white.opacity(0.06)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                    Image(systemName: "music.note").font(.system(size: 16)).foregroundStyle(Color.white.opacity(0.6))
+                    Image(systemName: "music.note").font(.system(size: size * 0.42)).foregroundStyle(Color.white.opacity(0.6))
                 }
             }
         }
-        .frame(width: 38, height: 38)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
     }
 }
 
-/// A hairline that advances with the track.
+/// A line that advances with the track.
 struct ProgressLine: View {
     let state: NowPlayingState
 
@@ -97,12 +156,14 @@ struct ProgressLine: View {
                 let fraction = min(1, max(0, (state.elapsedNow(at: context.date) ?? 0) / duration))
                 GeometryReader { proxy in
                     ZStack(alignment: .leading) {
-                        Capsule().fill(Color.white.opacity(0.12))
-                        Capsule().fill(Color.white.opacity(0.5)).frame(width: proxy.size.width * fraction)
+                        Capsule().fill(Color.white.opacity(0.16))
+                        Capsule().fill(Color.white.opacity(0.8)).frame(width: proxy.size.width * fraction)
                     }
                 }
-                .frame(height: 2)
+                .frame(height: 3)
             }
+        } else {
+            Color.clear.frame(height: 3)
         }
     }
 }
@@ -140,6 +201,8 @@ struct DotRing: View {
     var isBreak = false
     var paused = false
     var diameter: CGFloat = 16
+    /// Each dot's diameter; by default a little under a tenth of the ring's.
+    var dotSize: CGFloat?
 
     var body: some View {
         Canvas { context, size in
@@ -147,7 +210,7 @@ struct DotRing: View {
             let remaining: Double = 1 - min(1, max(0, elapsed))
             let left = Int(ceil(remaining * Double(dots) - 0.0001))
             let radius: CGFloat = min(size.width, size.height) / 2 - 1
-            let dot: CGFloat = max(1.2, diameter * 0.085)
+            let dot: CGFloat = dotSize ?? max(1.2, diameter * 0.085)
             let tint: Color = isBreak ? Color(red: 0.4, green: 0.88, blue: 0.55) : Color.white
             let onColor: Color = tint.opacity(paused ? 0.45 : 0.95)
             let offColor: Color = Color.white.opacity(0.17)
@@ -164,56 +227,121 @@ struct DotRing: View {
     }
 }
 
-/// The pomodoro card: the ring of dots, time left, and pause / skip / stop; after a break, a way to start again.
-struct FocusCard: View {
+/// The pomodoro tile: the ring of dots with the time inside, and pause / skip / stop; after a break, a way to start again.
+/// Next to the music it is squarer (`compact`); alone it is one wide strip.
+struct FocusTile: View {
     @ObservedObject var focus: FocusTimer
+    let compact: Bool
 
     var body: some View {
         TimelineView(.periodic(from: Clock.epoch, by: 1)) { context in
-            HStack(spacing: 10) {
-                DotRing(elapsed: focus.fraction(at: context.date),
-                        isBreak: focus.phase?.isBreak ?? false, paused: focus.isPaused, diameter: 26)
-                    .frame(width: 30, height: 30)
-                if focus.state == .waiting {
-                    Text(L10n.t("Break is over")).font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.white)
-                    Spacer(minLength: 4)
-                    Button(L10n.t("Start focus")) { focus.startNextFocus() }
-                        .buttonStyle(CapsuleButtonStyle(fill: Color(red: 1, green: 0.38, blue: 0.32).opacity(0.85), foreground: Color.white))
-                } else {
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(DurationFormat.clock(Int(focus.remaining(at: context.date).rounded(.up))))
-                            .font(.system(size: 15, weight: .semibold, design: .rounded))
-                            .monospacedDigit()
-                            .foregroundStyle(Color.white.opacity(focus.isPaused ? 0.5 : 1))
-                        Text(label).font(.system(size: 10.5)).foregroundStyle(Color.white.opacity(0.5))
-                    }
-                    Spacer(minLength: 4)
-                    control(focus.isPaused ? "play.fill" : "pause.fill", focus.isPaused ? "Resume" : "Pause") { focus.togglePause() }
-                    control("forward.end.fill", "Skip") { focus.skip() }
-                }
-                control("xmark", "Stop pomodoro") { focus.stop() }
+            let time = DurationFormat.clock(Int(focus.remaining(at: context.date).rounded(.up)))
+            Group {
+                if focus.state == .waiting { waiting } else if compact { square(time, context.date) } else { wide(time, context.date) }
             }
-            .padding(.horizontal, 12)
-            .frame(maxWidth: .infinity)
-            .frame(height: IslandLayout.compactWidgetHeight)
-            .background(cardBackground)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .bentoTile(.focus)
         }
     }
 
-    private var label: String {
+    /// Side by side with the music the tile is squarer, so the three parts stack; alone it is a strip, so they sit in a row.
+    @ViewBuilder private var waiting: some View {
+        let start = Button(L10n.t("Start focus")) { focus.startNextFocus() }
+            .buttonStyle(CapsuleButtonStyle(fill: Color(red: 0.86, green: 0.25, blue: 0.20), foreground: Color.white))
+        if compact {
+            VStack(spacing: 8) {
+                Text(L10n.t("Break is over")).font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.white)
+                start
+                control("xmark", "Stop pomodoro") { focus.stop() }
+            }
+            .padding(10)
+        } else {
+            HStack(spacing: 10) {
+                Text(L10n.t("Break is over")).font(.system(size: 15, weight: .semibold)).foregroundStyle(Color.white).lineLimit(1)
+                Spacer(minLength: 4)
+                start
+                control("xmark", "Stop pomodoro") { focus.stop() }
+            }
+            .padding(12)
+        }
+    }
+
+    private func ring(_ date: Date, diameter: CGFloat, dot: CGFloat) -> some View {
+        DotRing(elapsed: focus.fraction(at: date), isBreak: focus.phase?.isBreak ?? false, paused: focus.isPaused,
+                diameter: diameter, dotSize: dot)
+    }
+
+    private func square(_ time: String, _ date: Date) -> some View {
+        VStack(spacing: 4) {
+            HStack {
+                Text(phaseName).font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.white)
+                Spacer(minLength: 4)
+                Text(cycle).font(.system(size: 10.5)).foregroundStyle(Color.white.opacity(0.82))
+            }
+            .frame(height: 14)
+            ZStack {
+                ring(date, diameter: 62, dot: 3.4)
+                Text(time)
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(Color.white.opacity(focus.isPaused ? 0.55 : 1))
+            }
+            .frame(width: 62, height: 62)
+            HStack(spacing: 10) { controls }.frame(height: 24)
+        }
+        .padding(10)
+    }
+
+    private func wide(_ time: String, _ date: Date) -> some View {
+        HStack(spacing: 12) {
+            ring(date, diameter: 56, dot: 3.2).frame(width: 56, height: 56)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(time)
+                    .font(.system(size: 24, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(Color.white.opacity(focus.isPaused ? 0.55 : 1))
+                Text([phaseName, cycle].filter { !$0.isEmpty }.joined(separator: " · "))
+                    .font(.system(size: 11)).foregroundStyle(Color.white.opacity(0.82)).lineLimit(1)
+            }
+            Spacer(minLength: 4)
+            HStack(spacing: 8) { controls }
+        }
+        .padding(12)
+    }
+
+    @ViewBuilder private var controls: some View {
+        control(focus.isPaused ? "play.fill" : "pause.fill", focus.isPaused ? "Resume" : "Pause") { focus.togglePause() }
+        control("forward.end.fill", "Skip") { focus.skip() }
+        control("xmark", "Stop pomodoro") { focus.stop() }
+    }
+
+    private var phaseName: String {
         switch focus.phase {
-        case .focus: L10n.t("Focus") + " · \(focus.completedFocus % focus.plan.rounds + 1)/\(focus.plan.rounds)"
+        case .focus: L10n.t("Focus")
         case .shortBreak: L10n.t("Short break")
         case .longBreak: L10n.t("Long break")
         case nil: ""
         }
     }
 
+    private var cycle: String {
+        guard focus.phase == .focus else { return "" }
+        var text = L10n.t("cycle %d of %d")
+        for value in [focus.completedFocus % focus.plan.rounds + 1, focus.plan.rounds] {
+            if let range = text.range(of: "%d") { text.replaceSubrange(range, with: String(value)) }
+        }
+        return text
+    }
+
     private func control(_ symbol: String, _ help: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Image(systemName: symbol).font(.system(size: 11, weight: .semibold)).frame(width: 26, height: 28)
+            Image(systemName: symbol)
+                .font(.system(size: 10.5, weight: .semibold))
+                .foregroundStyle(Color.white.opacity(0.92))
+                .frame(width: 24, height: 24)
+                .background(Circle().fill(Color.white.opacity(0.16)))
         }
-        .buttonStyle(IconButtonStyle())
+        .buttonStyle(.plain)
         .help(L10n.t(help))
         .accessibilityLabel(L10n.t(help))
     }

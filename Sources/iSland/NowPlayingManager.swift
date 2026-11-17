@@ -48,6 +48,8 @@ struct AdapterLocation {
 final class NowPlayingManager: ObservableObject {
     @Published private(set) var state = NowPlayingState()
     @Published private(set) var artwork: NSImage?
+    /// The cover's average colour, for the music tile's tint; worked out once per cover.
+    @Published private(set) var artworkTint: NSColor?
     /// "Spotify", "Music", "Google Chrome"...
     @Published private(set) var appName: String?
 
@@ -91,7 +93,8 @@ final class NowPlayingManager: ObservableObject {
     /// For demos and snapshots: show a made-up track.
     func preview(_ preview: NowPlayingState, appName: String?) {
         self.appName = appName
-        artwork = nil
+        artwork = NSImage.demoCover()
+        artworkTint = artwork?.averageTint()
         state = preview
     }
 
@@ -182,6 +185,7 @@ final class NowPlayingManager: ObservableObject {
         if new.artworkBase64 != shownArtwork {
             shownArtwork = new.artworkBase64
             artwork = new.artworkBase64.flatMap { Data(base64Encoded: $0) }.flatMap { NSImage(data: $0) }
+            artworkTint = artwork?.averageTint()
         }
         let owner = new.parentBundleID ?? new.bundleID
         if owner != state.parentBundleID ?? state.bundleID || appName == nil { appName = Self.displayName(forBundleID: owner) }

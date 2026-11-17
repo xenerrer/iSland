@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>iSland · Opção C · Bento Tiles</title>
+<meta name="viewport" content="width=1800">
+<style>
+:root{
+  --ink:#F7F5FC; --ink2:rgba(247,245,252,.76); --ink3:rgba(247,245,252,.58);
+  --orange:#F2935F; --blue:#7DB4FF; --red:#FF6159; --green:#34D56A;
+  --sans:-apple-system,'SF Pro Text',system-ui,sans-serif;
+  --mono:ui-monospace,'SF Mono',SFMono-Regular,Menlo,monospace;
+  --ease-out:cubic-bezier(.23,1,.32,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1800px;height:1100px;overflow:hidden;background:#0c0a15}
+body{font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased;font-size:13px}
+b{font-weight:600}
+.board{position:relative;width:1800px;height:1100px;background:
+  radial-gradient(900px 520px at 6% -8%,rgba(255,92,160,.22),transparent 70%),
+  radial-gradient(900px 520px at 98% -4%,rgba(80,130,255,.24),transparent 70%),
+  radial-gradient(1000px 420px at 52% 112%,rgba(255,150,70,.16),transparent 70%),#0c0a15}
+
+/* ---- title */
+.title{position:absolute;left:54px;top:30px;right:54px;height:70px;display:flex;align-items:flex-end;justify-content:space-between}
+.title h1{font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.title h1 span{color:var(--orange)}
+.title p{font-size:14px;color:var(--ink2);margin-top:6px}
+.tags{display:flex;gap:8px}
+.tags span{height:26px;padding:0 11px;border-radius:13px;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);font-size:12px;color:var(--ink2);display:flex;align-items:center}
+
+/* ---- wallpaper + screens */
+.wall{background:
+  radial-gradient(520px 420px at 8% 12%,rgba(255,78,150,.95),transparent 68%),
+  radial-gradient(560px 460px at 96% 10%,rgba(60,120,255,1),transparent 70%),
+  radial-gradient(520px 420px at 62% 96%,rgba(255,168,60,1),transparent 70%),
+  radial-gradient(420px 360px at 2% 98%,rgba(255,110,110,.95),transparent 70%),
+  linear-gradient(135deg,#ff79b3 0%,#ff9d68 46%,#7088ff 100%)}
+.screen{position:absolute;top:118px;width:540px;height:566px;border-radius:24px;overflow:hidden;
+  box-shadow:0 0 0 1px rgba(255,255,255,.14),0 34px 60px -26px rgba(0,0,0,.7)}
+.orb{position:absolute;border-radius:50%;background:radial-gradient(circle at 34% 28%,rgba(255,255,255,.55),rgba(255,255,255,.10) 62%,rgba(255,255,255,.02) 100%)}
+.o1{width:210px;height:210px;left:-60px;top:360px;opacity:.55}
+.o2{width:150px;height:150px;right:-30px;top:300px;opacity:.5}
+.o3{width:90px;height:90px;left:70px;top:520px;opacity:.45}
+.o4{width:240px;height:240px;right:40px;bottom:-110px;opacity:.4}
+.mbar{position:absolute;left:0;right:0;top:0;height:38px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;
+  background:rgba(24,10,36,.20);-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4);
+  font-size:13px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.35)}
+.mb-l,.mb-r{display:flex;align-items:center;gap:13px}
+.mb-r svg{filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
+.mb-r span{font-weight:500}
+.notch{position:absolute;left:171px;top:0;z-index:30}
+
+/* ---- island */
+.island{position:absolute;z-index:10}
+.isl-shadow{position:absolute;top:0;bottom:0;border-radius:0 0 28px 28px;background:#000;opacity:.5;filter:blur(24px);transform:translateY(24px) scale(.94,.97)}
+.isl-glass{position:absolute;top:0;bottom:0;border-radius:0 0 28px 28px;-webkit-backdrop-filter:blur(30px) saturate(1.8);backdrop-filter:blur(30px) saturate(1.8);
+  background:
+   radial-gradient(260px 160px at 12% 14%,rgba(255,120,170,.14),transparent 70%),
+   radial-gradient(280px 180px at 92% 40%,rgba(110,150,255,.14),transparent 70%),
+   linear-gradient(180deg,rgba(8,7,14,.96) 0,rgba(8,7,14,.93) 34px,rgba(18,15,30,.64) 78px,rgba(20,17,34,.60) 100%)}
+.ear{position:absolute;top:0;fill:rgba(8,7,14,.96)}
+.isl-edge{position:absolute;left:0;top:0;pointer-events:none}
+.isl-body{position:absolute;top:0}
+.hdr{position:absolute;left:0;right:0;top:0;height:38px}
+.schip{position:absolute;left:8px;top:6px;height:26px;display:flex;align-items:center;gap:5px;padding:0 8px 0 7px;border-radius:13px;
+  background:rgba(255,255,255,.10);font-size:11.5px;font-weight:600;letter-spacing:.005em;color:var(--ink);white-space:nowrap}
+.schip.red{background:rgba(255,97,89,.22);color:#FFD2CE}
+.hgrp{position:absolute;right:10px;top:7px;display:flex;gap:4px}
+.ibtn{width:24px;height:24px;border-radius:12px;background:rgba(255,255,255,.10);display:grid;place-items:center;color:rgba(247,245,252,.88)}
+
+/* ---- tiles */
+.tile{position:absolute;border-radius:20px;background:rgba(255,255,255,.07);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.09),inset 0 1px 0 rgba(255,255,255,.10)}
+.tile.agents{background:linear-gradient(180deg,rgba(150,140,255,.17),rgba(120,110,255,.08))}
+.tile.agents.flat{background:linear-gradient(180deg,rgba(150,140,255,.20),rgba(120,110,255,.11))}
+.thead{position:absolute;left:14px;right:10px;top:6px;height:28px;display:flex;align-items:center}
+.tname{font-size:13px;font-weight:700;letter-spacing:.005em}
+.tcount{margin-left:7px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:rgba(255,255,255,.14);font-size:11px;font-weight:600;display:grid;place-items:center;color:var(--ink)}
+.rail{margin-left:auto;display:flex;gap:5px}
+.ring{display:grid;place-items:center;border-radius:50%;box-shadow:inset 0 0 0 2px var(--c);background:color-mix(in srgb,var(--c) 15%,transparent)}
+.ring.front{outline:1.5px solid rgba(255,255,255,.38);outline-offset:1.5px}
+.list{position:absolute;left:6px;right:6px;top:36px}
+.row{position:relative;height:38px;border-radius:14px;display:flex;align-items:center;gap:9px;padding:0 3px 0 9px}
+.row.front{background:rgba(255,255,255,.09);box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
+.row.hover{background:rgba(255,255,255,.16)}
+.slot{width:22px;height:22px;display:grid;place-items:center;flex:none}
+.slot.rec{color:var(--ink2);width:22px;height:22px;border-radius:11px;background:rgba(255,255,255,.1)}
+.tx{display:flex;flex-direction:column;min-width:0;flex:1;line-height:1.2}
+.tx .t{font-size:12.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+.tx .f{font-size:11px;color:var(--ink2);white-space:nowrap}
+.tx.one{justify-content:center}
+.quiet{color:var(--ink3);display:grid;place-items:center;flex:none}
+.d{font-family:var(--mono);font-size:11px;color:var(--ink2);white-space:nowrap;flex:none;letter-spacing:-.01em}
+.d.sans{font-family:var(--sans);letter-spacing:0}
+.xb{width:24px;height:24px;border-radius:12px;display:grid;place-items:center;color:rgba(247,245,252,.52);flex:none}
+.row.hover .xb{color:rgba(247,245,252,.9);background:rgba(255,255,255,.12)}
+
+/* ---- status glyph motion (only continuous animation) */
+.gl{overflow:visible;flex:none}
+.g-claude g{transform-box:view-box;transform-origin:50% 50%;animation:bloom 2.4s ease-in-out infinite}
+@keyframes bloom{0%,100%{transform:scale(.86) rotate(0)}50%{transform:scale(1.1) rotate(22deg)}}
+.g-codex .halo,.g-red .halo{transform-box:view-box;transform-origin:50% 50%}
+.g-codex .halo{animation:pulse 1.8s ease-in-out infinite}
+.g-red .halo{animation:breathe 2.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(.7);opacity:.1}50%{transform:scale(1.1);opacity:.35}}
+@keyframes breathe{0%,100%{transform:scale(.75);opacity:.5}50%{transform:scale(1.15);opacity:.12}}
+.g-gemini circle{animation:braille .8s linear infinite}
+@keyframes braille{0%,100%{opacity:.4}40%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.gl *{animation:none!important}}
+
+/* ---- music */
+.tile.music{background:linear-gradient(155deg,rgba(160,80,240,.62) 0%,rgba(78,40,160,.66) 58%,rgba(255,79,160,.30) 130%)}
+.cov2{position:absolute;left:10px;top:10px;width:70px;height:70px;border-radius:15px;overflow:hidden;box-shadow:0 6px 14px -4px rgba(10,0,40,.6),0 0 0 1px rgba(255,255,255,.14)}
+.cov2 svg{display:block}
+.mtx{position:absolute;left:90px;right:10px;top:12px;height:66px;display:flex;flex-direction:column}
+.mtx b{font-size:13px;line-height:1.25;white-space:nowrap}
+.mtx span{font-size:11px;color:var(--ink2);margin-top:1px;white-space:nowrap}
+.mtx .eq{margin-top:auto;margin-bottom:2px}
+.eq{display:flex;align-items:flex-end;height:15px}
+.eq i{display:block;border-radius:2px}
+.prog{position:absolute;left:10px;right:10px;top:89px;height:3px;border-radius:2px;background:rgba(255,255,255,.22)}
+.prog i{display:block;height:100%;border-radius:2px;background:#fff}
+.mctl{position:absolute;left:0;right:0;bottom:7px;display:flex;justify-content:center;align-items:center;gap:16px}
+.cbtn{width:26px;height:26px;border-radius:13px;display:grid;place-items:center;color:#fff}
+.cbtn.play{width:30px;height:30px;border-radius:15px;background:#fff;color:#2a1260}
+.cbtn.s{background:rgba(255,255,255,.14);width:26px;height:26px}
+.cbtn.m{background:rgba(255,255,255,.14);flex:none}
+
+/* ---- pomodoro */
+.tile.pomo{background:linear-gradient(160deg,rgba(255,112,84,.34),rgba(255,86,110,.14))}
+.pring{position:absolute;left:8px;top:15px;width:98px;height:98px}
+.pring svg{display:block}
+.ptime{position:absolute;inset:0;display:grid;place-items:center;font-size:21px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:#fff}
+.ptx{position:absolute;left:114px;right:8px;top:19px;display:flex;flex-direction:column}
+.ptx b{font-size:13px}
+.ptx span{font-size:11px;color:var(--ink2);margin-top:1px}
+.pctl{position:absolute;left:112px;bottom:12px;display:flex;gap:3px}
+
+/* ---- calendar */
+.tile.cal{background:linear-gradient(90deg,rgba(76,155,255,.34),rgba(76,155,255,.12))}
+.cbar{position:absolute;left:12px;top:14px;width:5px;height:34px;border-radius:3px;background:#5AA2FF}
+.ctime{position:absolute;left:26px;top:0;height:62px;display:flex;align-items:center;font-size:36px;font-weight:700;letter-spacing:-.035em;font-variant-numeric:tabular-nums;color:#fff}
+.ctx{position:absolute;left:138px;top:0;height:62px;display:flex;flex-direction:column;justify-content:center}
+.ctx b{font-size:13px;line-height:1.3;white-space:nowrap}
+.ctx span{font-size:11px;color:var(--ink2);margin-top:1px;white-space:nowrap}
+.tile.cal .cbtn.m{position:absolute;right:104px;top:18px}
+.join{display:grid;place-items:center;height:26px;padding:0 14px;border-radius:13px;font-size:12px;font-weight:600}
+.tile.cal .join{position:absolute;right:30px;top:18px;width:64px;padding:0}
+.quiet-grey{background:rgba(255,255,255,.12);color:rgba(247,245,252,.84)}
+.join.live{background:var(--green);color:#04210E}
+.pager{position:absolute;right:11px;top:17px;display:flex;flex-direction:column;gap:3.5px;align-items:center}
+.pager i{display:block;width:4px;height:4px;border-radius:2px;background:rgba(255,255,255,.35)}
+.pager i.on{height:10px;background:#fff}
+
+/* ---- approval */
+.tile.appr{background:linear-gradient(170deg,rgba(255,128,84,.26),rgba(255,70,100,.12))}
+.ahead{position:absolute;left:16px;right:18px;top:16px;height:56px;display:flex;align-items:center;gap:14px}
+.aring{position:relative;width:56px;height:56px;flex:none;display:grid;place-items:center}
+.aring>svg{position:absolute;inset:0}
+.adot{position:relative;display:grid;place-items:center}
+.atx{display:flex;flex-direction:column;flex:1;min-width:0}
+.atx b{font-size:17px;font-weight:700;letter-spacing:-.005em}
+.atx span{font-size:12.5px;color:var(--ink2);margin-top:2px;white-space:nowrap}
+.atx em{font-style:normal;margin-left:6px;padding:1px 7px;border-radius:8px;background:rgba(255,255,255,.12);font-size:11px}
+.acount{font-size:40px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:#FFC2BB}
+.cmd{position:absolute;left:12px;right:12px;top:84px;height:98px;border-radius:16px;background:rgba(6,4,14,.50);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);padding:12px 16px}
+.tool{display:inline-block;font-family:var(--mono);font-size:10.5px;color:var(--ink2);padding:2px 8px;border-radius:7px;background:rgba(255,255,255,.12)}
+.cmd code{display:block;margin-top:8px;font-family:var(--mono);font-size:14px;line-height:23px;color:#fff}
+.cmd .ln{display:block;white-space:nowrap}
+.cmd mark{color:#FFB3AB;background:rgba(255,97,89,.20);border-radius:5px;padding:1px 4px;margin:0 -1px;box-shadow:inset 0 -1.5px 0 rgba(255,126,116,.7)}
+.hintrow{position:absolute;left:18px;right:18px;top:196px;height:22px;display:flex;align-items:center;justify-content:space-between}
+.always{font-family:var(--mono);font-size:11px;color:var(--ink2);letter-spacing:-.01em}
+.keys{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink2)}
+.keys span:nth-child(2){margin-right:7px}
+.key{font-family:var(--mono);font-size:10.5px;color:var(--ink);padding:2px 6px;border-radius:6px;background:rgba(255,255,255,.14);box-shadow:inset 0 -1px 0 rgba(255,255,255,.12)}
+.btns{position:absolute;left:12px;right:12px;bottom:14px;height:48px;display:flex;gap:6px}
+.btn{flex:1;display:grid;place-items:center;height:48px;border-radius:24px;font-size:14px;font-weight:600}
+.btn.term{flex:1.15}.btn.ok{flex:1.4}
+.btn.neg{background:rgba(255,97,89,.18);color:#FFC6C1;box-shadow:inset 0 0 0 1px rgba(255,97,89,.42)}
+.btn.term{background:rgba(255,255,255,.12);color:var(--ink)}
+.btn.alw{background:rgba(52,213,106,.18);color:#7DE79B;box-shadow:inset 0 0 0 1px rgba(52,213,106,.34)}
+.btn.ok{background:var(--green);color:#04210E}
+.btn.sm{height:40px;flex:none;padding:0 14px;border-radius:20px;font-size:13px}
+
+/* ---- state 1 panel */
+.panel{position:absolute;top:118px;left:54px;width:540px;height:566px;border-radius:24px;background:rgba(255,255,255,.05);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.10);padding:12px 12px;display:flex;flex-direction:column;justify-content:space-between}
+.pitem{display:flex;flex-direction:column;gap:5px}
+.crop{position:relative;width:516px;height:62px;border-radius:14px;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.12)}
+.wallstrip{background:
+  radial-gradient(200px 140px at 12% 20%,rgba(255,78,150,.95),transparent 70%),
+  radial-gradient(220px 160px at 92% 10%,rgba(60,120,255,1),transparent 70%),
+  radial-gradient(260px 160px at 58% 100%,rgba(255,168,60,1),transparent 70%),
+  linear-gradient(100deg,#ff79b3 0%,#ff9d68 50%,#7088ff 100%)}
+.mbar.sm{padding:0 12px;font-size:13px}
+.pillsvg{position:absolute;top:0;z-index:5}
+.wchip{position:absolute;top:7px;width:24px;height:24px;border-radius:12px;display:grid;place-items:center;z-index:6}
+.wchip.num{font-size:13px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums}
+.wchip.red{color:#FFC2BB}
+.wchip.cov{overflow:hidden;border-radius:7px;background:none}
+.wchip.cov svg{display:block;border-radius:7px}
+.wtime{position:absolute;top:0;height:38px;display:grid;place-items:center;font-family:var(--mono);font-size:10.5px;font-weight:600;color:#fff;z-index:6;letter-spacing:-.05em}
+.wring{position:absolute;top:6px;z-index:6}
+.pcap{display:flex;gap:8px;align-items:baseline;padding-left:6px;font-size:12px;color:var(--ink2)}
+.pcap b{color:var(--ink);font-size:12.5px}
+
+/* ---- captions */
+.cap{position:absolute;top:702px;width:540px;padding:0 6px}
+.cap .n{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:11px;background:var(--orange);color:#2b1000;font-size:12px;font-weight:700;margin-right:9px;vertical-align:1px}
+.cap h3{font-size:15px;font-weight:700;letter-spacing:-.005em}
+.cap p{margin-top:6px;font-size:12.5px;line-height:1.5;color:var(--ink2);max-width:520px}
+
+/* ---- bottom strip */
+.strip{position:absolute;left:54px;right:54px;top:800px;height:252px;border-radius:24px;background:rgba(255,255,255,.05);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.10)}
+.sb{position:absolute;top:16px;bottom:16px}
+.sb h4{font-size:12.5px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.sb h4 i{font-style:normal;font-weight:500;color:var(--ink3);font-size:12px}
+.sb p{font-size:12.5px;line-height:1.5;color:var(--ink2)}
+.sb p+p{margin-top:7px}
+.sb p b{color:var(--ink)}
+.vrow{display:flex;gap:30px;margin-bottom:12px}
+.vcol{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.vcap{font-size:11.5px;color:var(--ink2)}
+.vcol .join{width:76px;padding:0}
+.warnrow{display:flex;gap:6px;align-items:stretch;width:424px;padding:6px;border-radius:20px;background:linear-gradient(170deg,rgba(255,128,84,.26),rgba(255,70,100,.12));box-shadow:inset 0 0 0 1px rgba(255,255,255,.09)}
+.warn{flex:1;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:20px;background:rgba(255,190,70,.16);box-shadow:inset 0 0 0 1px rgba(255,190,70,.36);color:#FFD98A;font-size:11px;line-height:1.3;font-weight:600}
+.warn svg{flex:none}
+.sw{display:flex;gap:6px;margin:2px 0 10px}
+.sw i{display:block;flex:1;height:34px;border-radius:12px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+.sw-l{display:flex;gap:6px;font-size:11px;color:var(--ink2);margin:-4px 0 12px}
+.sw-l span{flex:1;text-align:center}
+</style>
+</head>
+<body>
+<main class="board">
+  <header class="title">
+    <div><h1>iSland <span>·</span> Opção C, Bento Tiles</h1><p>O notch abre como uma grade de blocos macios e coloridos, cada um com o seu matiz. Mais cor, formas mais redondas, mesma informação.</p></div>
+    <div class="tags"><span>macOS 26 · Liquid Glass</span><span>SwiftUI puro</span><span>ilha 440 × 480 pt</span></div>
+  </header>
+
+  <section class="panel" aria-label="Pílula recolhida"><div class="pitem">
+  <div class="crop wallstrip">
+    <div class="mbar sm"><span class="mb-l"><span style="font-size:15px;line-height:1;margin-top:-1px">&#xF8FF;</span><b>Finder</b></span><span class="mb-r"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6.2a8.5 8.5 0 0 1 12 0M4.2 8.6a5.4 5.4 0 0 1 7.6 0M6.4 11a2.3 2.3 0 0 1 3.2 0"/><circle cx="8" cy="12.8" r=".7" fill="currentColor" stroke="none"/></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x=".6" y=".6" width="21" height="10.8" rx="3.2" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width="1.1"/><rect x="2.2" y="2.2" width="14.5" height="7.6" rx="1.8" fill="#fff"/><path d="M23.2 4v4c.9-.3 1.4-1.1 1.4-2s-.5-1.7-1.4-2z" fill="#fff" fill-opacity=".8"/></svg><span>14:21</span></span></div>
+    <svg class="pillsvg" style="left:158.0px" width="200" height="38"><path d="M0 0H200A7 7 0 0 0 193 7V25A13 13 0 0 1 180 38H20A13 13 0 0 1 7 25V7A7 7 0 0 0 0 0Z" fill="#000"/></svg>
+  </div>
+  <div class="pcap"><b>Ocioso</b><span>só o notch, nada pisca</span></div>
+</div><div class="pitem">
+  <div class="crop wallstrip">
+    <div class="mbar sm"><span class="mb-l"><span style="font-size:15px;line-height:1;margin-top:-1px">&#xF8FF;</span><b>Finder</b></span><span class="mb-r"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6.2a8.5 8.5 0 0 1 12 0M4.2 8.6a5.4 5.4 0 0 1 7.6 0M6.4 11a2.3 2.3 0 0 1 3.2 0"/><circle cx="8" cy="12.8" r=".7" fill="currentColor" stroke="none"/></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x=".6" y=".6" width="21" height="10.8" rx="3.2" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width="1.1"/><rect x="2.2" y="2.2" width="14.5" height="7.6" rx="1.8" fill="#fff"/><path d="M23.2 4v4c.9-.3 1.4-1.1 1.4-2s-.5-1.7-1.4-2z" fill="#fff" fill-opacity=".8"/></svg><span>14:21</span></span></div>
+    <svg class="pillsvg" style="left:118.0px" width="280" height="38"><path d="M0 0H280A7 7 0 0 0 273 7V25A13 13 0 0 1 260 38H20A13 13 0 0 1 7 25V7A7 7 0 0 0 0 0Z" fill="#000"/></svg><span class="wchip" style="left:133.0px;background:rgba(242,147,95,.2)"><svg class="gl g-claude" width="15" height="15" viewBox="0 0 16 16"><g><path d="M8 8L8.00 1.50 M8 8L11.18 4.82 M8 8L14.50 8.00 M8 8L11.18 11.18 M8 8L8.00 14.50 M8 8L4.82 11.18 M8 8L1.50 8.00 M8 8L4.82 4.82" stroke="#F2935F" stroke-width="2.1" stroke-linecap="round" fill="none"/></g></svg></span><span class="wchip num" style="left:359.0px;background:rgba(255,255,255,.14)">3</span>
+  </div>
+  <div class="pcap"><b>Trabalhando</b><span>estrela do agente + contagem</span></div>
+</div><div class="pitem">
+  <div class="crop wallstrip">
+    <div class="mbar sm"><span class="mb-l"><span style="font-size:15px;line-height:1;margin-top:-1px">&#xF8FF;</span><b>Finder</b></span><span class="mb-r"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6.2a8.5 8.5 0 0 1 12 0M4.2 8.6a5.4 5.4 0 0 1 7.6 0M6.4 11a2.3 2.3 0 0 1 3.2 0"/><circle cx="8" cy="12.8" r=".7" fill="currentColor" stroke="none"/></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x=".6" y=".6" width="21" height="10.8" rx="3.2" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width="1.1"/><rect x="2.2" y="2.2" width="14.5" height="7.6" rx="1.8" fill="#fff"/><path d="M23.2 4v4c.9-.3 1.4-1.1 1.4-2s-.5-1.7-1.4-2z" fill="#fff" fill-opacity=".8"/></svg><span>14:21</span></span></div>
+    <svg class="pillsvg" style="left:118.0px" width="280" height="38"><path d="M0 0H280A7 7 0 0 0 273 7V25A13 13 0 0 1 260 38H20A13 13 0 0 1 7 25V7A7 7 0 0 0 0 0Z" fill="#000"/></svg><span class="wchip cov" style="left:133.0px"><svg width="24" height="24" viewBox="0 0 100 100" aria-hidden="true">
+<defs>
+<linearGradient id="cvSkyp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#150a4a"/><stop offset=".48" stop-color="#6a22b8"/><stop offset=".82" stop-color="#ff4fa0"/><stop offset="1" stop-color="#ffb066"/></linearGradient>
+<radialGradient id="cvSunp"><stop offset="0" stop-color="#fff0fa"/><stop offset=".35" stop-color="#ff7ac0"/><stop offset="1" stop-color="#ff4fa0" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="100" height="100" fill="url(#cvSkyp)"/>
+<circle cx="66" cy="60" r="30" fill="url(#cvSunp)"/>
+<g fill="#0c0626">
+<rect x="0" y="66" width="14" height="34"/><rect x="12" y="52" width="12" height="48"/><rect x="23" y="70" width="10" height="30"/>
+<rect x="32" y="44" width="14" height="56"/><rect x="45" y="62" width="11" height="38"/><rect x="55" y="74" width="12" height="26"/>
+<rect x="66" y="56" width="13" height="44"/><rect x="78" y="68" width="10" height="32"/><rect x="87" y="48" width="13" height="52"/>
+</g>
+<g fill="#8af4ff"><rect x="15" y="58" width="2" height="2"/><rect x="19" y="66" width="2" height="2"/><rect x="36" y="52" width="2" height="2"/><rect x="40" y="62" width="2" height="2"/><rect x="36" y="74" width="2" height="2"/><rect x="69" y="64" width="2" height="2"/><rect x="73" y="74" width="2" height="2"/><rect x="91" y="58" width="2" height="2"/><rect x="91" y="70" width="2" height="2"/></g>
+<g fill="#ffd7a8"><rect x="15" y="72" width="2" height="2"/><rect x="40" y="82" width="2" height="2"/><rect x="69" y="82" width="2" height="2"/><rect x="95" y="80" width="2" height="2"/></g>
+<rect x="0" y="95" width="100" height="1.6" fill="#8af4ff" opacity=".6"/>
+</svg></span><span class="wchip" style="left:359.0px;background:rgba(176,120,255,.26)"><span class="eq" style="gap:1.6px"><i style="height:4px;width:2.4px;background:#E4D2FF"></i><i style="height:9px;width:2.4px;background:#E4D2FF"></i><i style="height:6px;width:2.4px;background:#E4D2FF"></i><i style="height:10px;width:2.4px;background:#E4D2FF"></i></span></span>
+  </div>
+  <div class="pcap"><b>Música</b><span>capa + equalizador</span></div>
+</div><div class="pitem">
+  <div class="crop wallstrip">
+    <div class="mbar sm"><span class="mb-l"><span style="font-size:15px;line-height:1;margin-top:-1px">&#xF8FF;</span><b>Finder</b></span><span class="mb-r"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6.2a8.5 8.5 0 0 1 12 0M4.2 8.6a5.4 5.4 0 0 1 7.6 0M6.4 11a2.3 2.3 0 0 1 3.2 0"/><circle cx="8" cy="12.8" r=".7" fill="currentColor" stroke="none"/></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x=".6" y=".6" width="21" height="10.8" rx="3.2" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width="1.1"/><rect x="2.2" y="2.2" width="14.5" height="7.6" rx="1.8" fill="#fff"/><path d="M23.2 4v4c.9-.3 1.4-1.1 1.4-2s-.5-1.7-1.4-2z" fill="#fff" fill-opacity=".8"/></svg><span>14:21</span></span></div>
+    <svg class="pillsvg" style="left:118.0px" width="280" height="38"><path d="M0 0H280A7 7 0 0 0 273 7V25A13 13 0 0 1 260 38H20A13 13 0 0 1 7 25V7A7 7 0 0 0 0 0Z" fill="#000"/></svg><span class="wtime" style="left:125.0px;width:40px">18:05</span><span class="wring" style="left:358.0px"><svg width="26" height="26" viewBox="0 0 26 26"><circle cx="13.00" cy="2.60" r="0.95" fill="#fff" opacity="0.17"/><circle cx="15.16" cy="2.83" r="0.95" fill="#fff" opacity="0.17"/><circle cx="17.23" cy="3.50" r="0.95" fill="#fff" opacity="0.17"/><circle cx="19.11" cy="4.59" r="0.95" fill="#fff" opacity="0.17"/><circle cx="20.73" cy="6.04" r="0.95" fill="#fff" opacity="0.17"/><circle cx="22.01" cy="7.80" r="0.95" fill="#fff" opacity="0.17"/><circle cx="22.89" cy="9.79" r="0.95" fill="#fff" opacity="0.17"/><circle cx="23.34" cy="11.91" r="0.95" fill="#fff" opacity="0.17"/><circle cx="23.34" cy="14.09" r="0.95" fill="#fff"/><circle cx="22.89" cy="16.21" r="0.95" fill="#fff"/><circle cx="22.01" cy="18.20" r="0.95" fill="#fff"/><circle cx="20.73" cy="19.96" r="0.95" fill="#fff"/><circle cx="19.11" cy="21.41" r="0.95" fill="#fff"/><circle cx="17.23" cy="22.50" r="0.95" fill="#fff"/><circle cx="15.16" cy="23.17" r="0.95" fill="#fff"/><circle cx="13.00" cy="23.40" r="0.95" fill="#fff"/><circle cx="10.84" cy="23.17" r="0.95" fill="#fff"/><circle cx="8.77" cy="22.50" r="0.95" fill="#fff"/><circle cx="6.89" cy="21.41" r="0.95" fill="#fff"/><circle cx="5.27" cy="19.96" r="0.95" fill="#fff"/><circle cx="3.99" cy="18.20" r="0.95" fill="#fff"/><circle cx="3.11" cy="16.21" r="0.95" fill="#fff"/><circle cx="2.66" cy="14.09" r="0.95" fill="#fff"/><circle cx="2.66" cy="11.91" r="0.95" fill="#fff"/><circle cx="3.11" cy="9.79" r="0.95" fill="#fff"/><circle cx="3.99" cy="7.80" r="0.95" fill="#fff"/><circle cx="5.27" cy="6.04" r="0.95" fill="#fff"/><circle cx="6.89" cy="4.59" r="0.95" fill="#fff"/><circle cx="8.77" cy="3.50" r="0.95" fill="#fff"/><circle cx="10.84" cy="2.83" r="0.95" fill="#fff"/></svg></span>
+  </div>
+  <div class="pcap"><b>Pomodoro</b><span>tempo + anel de 30 pontos</span></div>
+</div><div class="pitem">
+  <div class="crop wallstrip">
+    <div class="mbar sm"><span class="mb-l"><span style="font-size:15px;line-height:1;margin-top:-1px">&#xF8FF;</span><b>Finder</b></span><span class="mb-r"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6.2a8.5 8.5 0 0 1 12 0M4.2 8.6a5.4 5.4 0 0 1 7.6 0M6.4 11a2.3 2.3 0 0 1 3.2 0"/><circle cx="8" cy="12.8" r=".7" fill="currentColor" stroke="none"/></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x=".6" y=".6" width="21" height="10.8" rx="3.2" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width="1.1"/><rect x="2.2" y="2.2" width="14.5" height="7.6" rx="1.8" fill="#fff"/><path d="M23.2 4v4c.9-.3 1.4-1.1 1.4-2s-.5-1.7-1.4-2z" fill="#fff" fill-opacity=".8"/></svg><span>14:21</span></span></div>
+    <svg class="pillsvg" style="left:118.0px" width="280" height="38"><path d="M0 0H280A7 7 0 0 0 273 7V25A13 13 0 0 1 260 38H20A13 13 0 0 1 7 25V7A7 7 0 0 0 0 0Z" fill="#000"/></svg><span class="wchip" style="left:133.0px;background:rgba(255,97,89,.2)"><svg class="gl g-red" width="15" height="15" viewBox="0 0 16 16"><circle class="halo" cx="8" cy="8" r="5.6" fill="#FF6159" opacity=".4"/><circle cx="8" cy="8" r="3.7" fill="#FF6159"/></svg></span><span class="wchip num red" style="left:359.0px;background:rgba(255,97,89,.2)">1</span>
+  </div>
+  <div class="pcap"><b>Precisa de você</b><span>ponto vermelho que respira</span></div>
+</div><div class="pitem">
+  <div class="crop wallstrip">
+    <div class="mbar sm"><span class="mb-l"><span style="font-size:15px;line-height:1;margin-top:-1px">&#xF8FF;</span><b>Finder</b></span><span class="mb-r"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6.2a8.5 8.5 0 0 1 12 0M4.2 8.6a5.4 5.4 0 0 1 7.6 0M6.4 11a2.3 2.3 0 0 1 3.2 0"/><circle cx="8" cy="12.8" r=".7" fill="currentColor" stroke="none"/></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x=".6" y=".6" width="21" height="10.8" rx="3.2" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width="1.1"/><rect x="2.2" y="2.2" width="14.5" height="7.6" rx="1.8" fill="#fff"/><path d="M23.2 4v4c.9-.3 1.4-1.1 1.4-2s-.5-1.7-1.4-2z" fill="#fff" fill-opacity=".8"/></svg><span>14:21</span></span></div>
+    <svg class="pillsvg" style="left:118.0px" width="280" height="38"><path d="M0 0H280A7 7 0 0 0 273 7V25A13 13 0 0 1 260 38H20A13 13 0 0 1 7 25V7A7 7 0 0 0 0 0Z" fill="#000"/></svg><span class="wchip" style="left:133.0px;background:rgba(52,213,106,.2)"><svg class="gl" width="15" height="15" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3.7" fill="#34D56A"/></svg></span><span class="wchip" style="left:359.0px;background:rgba(52,213,106,.2);color:#6FE59A"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.4 8.6l3 3 6.2-7.2"/></svg></span>
+  </div>
+  <div class="pcap"><b>Acabou</b><span>ponto verde por 8 s</span></div>
+</div></section>
+  <div class="screen wall" style="left:630px">
+  <i class="orb o1"></i><i class="orb o2"></i><i class="orb o3"></i><i class="orb o4"></i>
+  <div class="mbar"><span class="mb-l"><span style="font-size:15px;line-height:1;margin-top:-1px">&#xF8FF;</span></span><span class="mb-r"><svg width="25" height="12" viewBox="0 0 25 12"><rect x=".6" y=".6" width="21" height="10.8" rx="3.2" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width="1.1"/><rect x="2.2" y="2.2" width="14.5" height="7.6" rx="1.8" fill="#fff"/><path d="M23.2 4v4c.9-.3 1.4-1.1 1.4-2s-.5-1.7-1.4-2z" fill="#fff" fill-opacity=".8"/></svg></span></div>
+  <div class="island" style="left:36px;top:0px;width:468px;height:480px">
+  <div class="isl-shadow" style="left:14px;width:440px"></div>
+  <div class="isl-glass" style="left:14px;width:440px"></div>
+  <svg class="ear" style="left:0" width="14" height="14"><path d="M0 0H14V14A14 14 0 0 0 0 0Z"/></svg>
+  <svg class="ear" style="left:454px" width="14" height="14"><path d="M14 0H0V14A14 14 0 0 1 14 0Z"/></svg>
+  <svg class="isl-edge" width="468" height="480" viewBox="0 0 468 480"><defs><linearGradient id="edge1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".08" stop-color="#fff" stop-opacity=".16"/><stop offset=".6" stop-color="#fff" stop-opacity=".22"/><stop offset="1" stop-color="#fff" stop-opacity=".42"/></linearGradient></defs>
+    <path d="M0 0H468A14 14 0 0 0 454 14V452A28 28 0 0 1 426 480H42A28 28 0 0 1 14 452V14A14 14 0 0 0 0 0Z" fill="none" stroke="url(#edge1)" stroke-width="1"/></svg>
+  <div class="isl-body" style="left:14px;width:440px;height:480px"><div class="hdr"><span class="schip "><svg class="gl g-claude" width="13" height="13" viewBox="0 0 16 16"><g><path d="M8 8L8.00 1.50 M8 8L11.18 4.82 M8 8L14.50 8.00 M8 8L11.18 11.18 M8 8L8.00 14.50 M8 8L4.82 11.18 M8 8L1.50 8.00 M8 8L4.82 4.82" stroke="#F2935F" stroke-width="2.1" stroke-linecap="round" fill="none"/></g></svg><span>3 trabalhando</span></span><span class="hgrp"><span class="ibtn" role="button" aria-label="Pomodoro"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="9" r="5.2"/><path d="M8 9V6.3M6.3 2h3.4M12.3 4l.9-.9"/></svg></span><span class="ibtn" role="button" aria-label="Novo chat"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.2 3H4.6A1.6 1.6 0 0 0 3 4.6v6.8A1.6 1.6 0 0 0 4.6 13h6.8a1.6 1.6 0 0 0 1.6-1.6V8.8"/><path d="M12.4 2.4a1.25 1.25 0 0 1 1.8 1.8L8.7 9.8l-2.5.7.7-2.5z"/></svg></span><span class="ibtn" role="button" aria-label="Espelho"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.4 5.9A1.5 1.5 0 0 1 3.9 4.4h1.3l.8-1.3h4l.8 1.3h1.3a1.5 1.5 0 0 1 1.5 1.5v5.2a1.5 1.5 0 0 1-1.5 1.5H3.9a1.5 1.5 0 0 1-1.5-1.5z"/><circle cx="8" cy="8.5" r="2.2"/></svg></span><span class="ibtn" role="button" aria-label="Ajustes"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.86 6.47 L14.49 6.80 L14.49 9.20 L12.86 9.53 L12.52 10.35 L13.44 11.74 L11.74 13.44 L10.35 12.52 L9.53 12.86 L9.20 14.49 L6.80 14.49 L6.47 12.86 L5.65 12.52 L4.26 13.44 L2.56 11.74 L3.48 10.35 L3.14 9.53 L1.51 9.20 L1.51 6.80 L3.14 6.47 L3.48 5.65 L2.56 4.26 L4.26 2.56 L5.65 3.48 L6.47 3.14 L6.80 1.51 L9.20 1.51 L9.53 3.14 L10.35 3.48 L11.74 2.56 L13.44 4.26 L12.52 5.65Z" stroke-linejoin="round"/><circle cx="8" cy="8" r="2"/></svg></span></span></div><div class="tile agents" style="left:8px;top:40px;width:424px;height:230px">
+      <div class="thead"><span class="tname">Agentes</span><span class="tcount">5</span><span class="rail"><span class="ring front" style="--c:#F2935F;width:24px;height:24px"><svg class="gl g-claude" width="12" height="12" viewBox="0 0 16 16"><g><path d="M8 8L8.00 1.50 M8 8L11.18 4.82 M8 8L14.50 8.00 M8 8L11.18 11.18 M8 8L8.00 14.50 M8 8L4.82 11.18 M8 8L1.50 8.00 M8 8L4.82 4.82" stroke="#F2935F" stroke-width="2.1" stroke-linecap="round" fill="none"/></g></svg></span><span class="ring" style="--c:#FFFFFF;width:24px;height:24px"><svg class="gl g-codex" width="12" height="12" viewBox="0 0 16 16"><circle class="halo" cx="8" cy="8" r="5.6" fill="#fff" opacity=".22"/><circle cx="8" cy="8" r="3.7" fill="#fff"/></svg></span><span class="ring" style="--c:#7DB4FF;width:24px;height:24px"><svg class="gl g-gemini" width="12" height="12" viewBox="0 0 16 16" fill="#7DB4FF"><circle cx="5.4" cy="2.6" r="1.3" style="animation-delay:-0.0s"/><circle cx="10.6" cy="2.6" r="1.3" style="animation-delay:-0.1s"/><circle cx="5.4" cy="6.2" r="1.3" style="animation-delay:-0.2s"/><circle cx="10.6" cy="6.2" r="1.3" style="animation-delay:-0.3s"/><circle cx="5.4" cy="9.8" r="1.3" style="animation-delay:-0.4s"/><circle cx="10.6" cy="9.8" r="1.3" style="animation-delay:-0.5s"/><circle cx="5.4" cy="13.4" r="1.3" style="animation-delay:-0.6s"/><circle cx="10.6" cy="13.4" r="1.3" style="animation-delay:-0.7s"/></svg></span><span class="ring" style="--c:#34D56A;width:24px;height:24px"><svg class="gl" width="12" height="12" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3.7" fill="#34D56A"/></svg></span><span class="ring" style="--c:#34D56A;width:24px;height:24px"><svg class="gl" width="12" height="12" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3.7" fill="#34D56A"/></svg></span></span></div>
+      <div class="list"><div class="row front"><span class="slot"><svg class="gl g-claude" width="16" height="16" viewBox="0 0 16 16"><g><path d="M8 8L8.00 1.50 M8 8L11.18 4.82 M8 8L14.50 8.00 M8 8L11.18 11.18 M8 8L8.00 14.50 M8 8L4.82 11.18 M8 8L1.50 8.00 M8 8L4.82 4.82" stroke="#F2935F" stroke-width="2.1" stroke-linecap="round" fill="none"/></g></svg></span><span class="tx"><span class="t">Corrigir os testes da API de pagamentos</span><span class="f">api-server</span></span><span class="d">Edit · 1m 20s</span><span class="xb" role="button" aria-label="Remover"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.6 4.6l6.8 6.8M11.4 4.6l-6.8 6.8"/></svg></span></div><div class="row"><span class="slot"><svg class="gl g-codex" width="16" height="16" viewBox="0 0 16 16"><circle class="halo" cx="8" cy="8" r="5.6" fill="#fff" opacity=".22"/><circle cx="8" cy="8" r="3.7" fill="#fff"/></svg></span><span class="tx"><span class="t">Ajustar o visual do notch</span><span class="f">iSland</span></span><span class="quiet"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.6c-2.1 0-3.5 1.5-3.5 3.6v2.1L3.3 10.2h9.4l-1.2-1.9V6.2C11.5 4.1 10.1 2.6 8 2.6z"/><path d="M6.6 12.2a1.5 1.5 0 0 0 2.8 0M2.6 2.8l10.8 10.4"/></svg></span><span class="d">Read · 8s</span><span class="xb" role="button" aria-label="Remover"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.6 4.6l6.8 6.8M11.4 4.6l-6.8 6.8"/></svg></span></div><div class="row hover"><span class="slot"><svg class="gl g-gemini" width="16" height="16" viewBox="0 0 16 16" fill="#7DB4FF"><circle cx="5.4" cy="2.6" r="1.3" style="animation-delay:-0.0s"/><circle cx="10.6" cy="2.6" r="1.3" style="animation-delay:-0.1s"/><circle cx="5.4" cy="6.2" r="1.3" style="animation-delay:-0.2s"/><circle cx="10.6" cy="6.2" r="1.3" style="animation-delay:-0.3s"/><circle cx="5.4" cy="9.8" r="1.3" style="animation-delay:-0.4s"/><circle cx="10.6" cy="9.8" r="1.3" style="animation-delay:-0.5s"/><circle cx="5.4" cy="13.4" r="1.3" style="animation-delay:-0.6s"/><circle cx="10.6" cy="13.4" r="1.3" style="animation-delay:-0.7s"/></svg></span><span class="tx"><span class="t">Migrar o banco para Postgres 16</span><span class="f">infra</span></span><span class="d">Bash · 22s</span><span class="xb" role="button" aria-label="Remover"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.6 4.6l6.8 6.8M11.4 4.6l-6.8 6.8"/></svg></span></div><div class="row"><span class="slot"><svg class="gl" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3.7" fill="#34D56A"/></svg></span><span class="tx"><span class="t">Nova página de preços</span><span class="f">landing</span></span><span class="d">Pronto · 10s</span><span class="xb" role="button" aria-label="Remover"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.6 4.6l6.8 6.8M11.4 4.6l-6.8 6.8"/></svg></span></div><div class="row"><span class="slot"><svg class="gl" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3.7" fill="#34D56A"/></svg></span><span class="tx one"><span class="t">docs</span></span><span class="d">wrap_up concluído · 3m 49s</span><span class="xb" role="button" aria-label="Remover"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.6 4.6l6.8 6.8M11.4 4.6l-6.8 6.8"/></svg></span></div></div>
+    </div><div class="tile music" style="left:8px;top:276px;width:209px;height:128px">
+      <span class="cov2"><svg width="70" height="70" viewBox="0 0 100 100" aria-hidden="true">
+<defs>
+<linearGradient id="cvSkym" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#150a4a"/><stop offset=".48" stop-color="#6a22b8"/><stop offset=".82" stop-color="#ff4fa0"/><stop offset="1" stop-color="#ffb066"/></linearGradient>
+<radialGradient id="cvSunm"><stop offset="0" stop-color="#fff0fa"/><stop offset=".35" stop-color="#ff7ac0"/><stop offset="1" stop-color="#ff4fa0" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="100" height="100" fill="url(#cvSkym)"/>
+<circle cx="66" cy="60" r="30" fill="url(#cvSunm)"/>
+<g fill="#0c0626">
+<rect x="0" y="66" width="14" height="34"/><rect x="12" y="52" width="12" height="48"/><rect x="23" y="70" width="10" height="30"/>
+<rect x="32" y="44" width="14" height="56"/><rect x="45" y="62" width="11" height="38"/><rect x="55" y="74" width="12" height="26"/>
+<rect x="66" y="56" width="13" height="44"/><rect x="78" y="68" width="10" height="32"/><rect x="87" y="48" width="13" height="52"/>
+</g>
+<g fill="#8af4ff"><rect x="15" y="58" width="2" height="2"/><rect x="19" y="66" width="2" height="2"/><rect x="36" y="52" width="2" height="2"/><rect x="40" y="62" width="2" height="2"/><rect x="36" y="74" width="2" height="2"/><rect x="69" y="64" width="2" height="2"/><rect x="73" y="74" width="2" height="2"/><rect x="91" y="58" width="2" height="2"/><rect x="91" y="70" width="2" height="2"/></g>
+<g fill="#ffd7a8"><rect x="15" y="72" width="2" height="2"/><rect x="40" y="82" width="2" height="2"/><rect x="69" y="82" width="2" height="2"/><rect x="95" y="80" width="2" height="2"/></g>
+<rect x="0" y="95" width="100" height="1.6" fill="#8af4ff" opacity=".6"/>
+</svg></span>
+      <span class="mtx"><b>Midnight City</b><span>M83 · Spotify</span><span class="eq" style="gap:2.4px"><i style="height:5px;width:3px;background:#fff"></i><i style="height:12px;width:3px;background:#fff"></i><i style="height:8px;width:3px;background:#fff"></i><i style="height:14px;width:3px;background:#fff"></i><i style="height:7px;width:3px;background:#fff"></i></span></span>
+      <span class="prog"><i style="width:38%"></i></span>
+      <span class="mctl"><span class="cbtn"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M12.2 3.6v8.8a.5.5 0 0 1-.8.4L6 8.4a.5.5 0 0 1 0-.8l5.4-4.4a.5.5 0 0 1 .8.4z"/><rect x="3.4" y="3.2" width="1.8" height="9.6" rx=".7"/></svg></span><span class="cbtn play"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="4.2" y="3.2" width="2.8" height="9.6" rx=".9"/><rect x="9" y="3.2" width="2.8" height="9.6" rx=".9"/></svg></span><span class="cbtn"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3.8 3.6v8.8a.5.5 0 0 0 .8.4L10 8.4a.5.5 0 0 0 0-.8L4.6 3.2a.5.5 0 0 0-.8.4z"/><rect x="10.8" y="3.2" width="1.8" height="9.6" rx=".7"/></svg></span></span>
+    </div><div class="tile pomo" style="left:223px;top:276px;width:209px;height:128px">
+      <span class="pring"><svg width="98" height="98" viewBox="0 0 98 98"><circle cx="49.00" cy="6.00" r="2.5" fill="#fff" opacity="0.17"/><circle cx="57.94" cy="6.94" r="2.5" fill="#fff" opacity="0.17"/><circle cx="66.49" cy="9.72" r="2.5" fill="#fff" opacity="0.17"/><circle cx="74.27" cy="14.21" r="2.5" fill="#fff" opacity="0.17"/><circle cx="80.96" cy="20.23" r="2.5" fill="#fff" opacity="0.17"/><circle cx="86.24" cy="27.50" r="2.5" fill="#fff" opacity="0.17"/><circle cx="89.90" cy="35.71" r="2.5" fill="#fff" opacity="0.17"/><circle cx="91.76" cy="44.51" r="2.5" fill="#fff" opacity="0.17"/><circle cx="91.76" cy="53.49" r="2.5" fill="#fff"/><circle cx="89.90" cy="62.29" r="2.5" fill="#fff"/><circle cx="86.24" cy="70.50" r="2.5" fill="#fff"/><circle cx="80.96" cy="77.77" r="2.5" fill="#fff"/><circle cx="74.27" cy="83.79" r="2.5" fill="#fff"/><circle cx="66.49" cy="88.28" r="2.5" fill="#fff"/><circle cx="57.94" cy="91.06" r="2.5" fill="#fff"/><circle cx="49.00" cy="92.00" r="2.5" fill="#fff"/><circle cx="40.06" cy="91.06" r="2.5" fill="#fff"/><circle cx="31.51" cy="88.28" r="2.5" fill="#fff"/><circle cx="23.73" cy="83.79" r="2.5" fill="#fff"/><circle cx="17.04" cy="77.77" r="2.5" fill="#fff"/><circle cx="11.76" cy="70.50" r="2.5" fill="#fff"/><circle cx="8.10" cy="62.29" r="2.5" fill="#fff"/><circle cx="6.24" cy="53.49" r="2.5" fill="#fff"/><circle cx="6.24" cy="44.51" r="2.5" fill="#fff"/><circle cx="8.10" cy="35.71" r="2.5" fill="#fff"/><circle cx="11.76" cy="27.50" r="2.5" fill="#fff"/><circle cx="17.04" cy="20.23" r="2.5" fill="#fff"/><circle cx="23.73" cy="14.21" r="2.5" fill="#fff"/><circle cx="31.51" cy="9.72" r="2.5" fill="#fff"/><circle cx="40.06" cy="6.94" r="2.5" fill="#fff"/></svg><span class="ptime">18:05</span></span>
+      <span class="ptx"><b>Foco</b><span>ciclo 2 de 4</span></span>
+      <span class="pctl"><span class="cbtn s"><svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="4.2" y="3.2" width="2.8" height="9.6" rx=".9"/><rect x="9" y="3.2" width="2.8" height="9.6" rx=".9"/></svg></span><span class="cbtn s"><svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3.6 3.6v8.8a.5.5 0 0 0 .8.4L9.8 8.4a.5.5 0 0 0 0-.8L4.4 3.2a.5.5 0 0 0-.8.4z"/><rect x="10.6" y="3.2" width="1.8" height="9.6" rx=".7"/></svg></span><span class="cbtn s"><svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="4" y="4" width="8" height="8" rx="2"/></svg></span></span>
+    </div><div class="tile cal" style="left:8px;top:410px;width:424px;height:62px">
+      <span class="cbar"></span>
+      <span class="ctime">14:00</span>
+      <span class="ctx"><b>Alinhamento lucas</b><span>em 38 min · Trabalho · 2/5</span></span>
+      <span class="cbtn m" role="button" aria-label="Espelho"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.4 5.9A1.5 1.5 0 0 1 3.9 4.4h1.3l.8-1.3h4l.8 1.3h1.3a1.5 1.5 0 0 1 1.5 1.5v5.2a1.5 1.5 0 0 1-1.5 1.5H3.9a1.5 1.5 0 0 1-1.5-1.5z"/><circle cx="8" cy="8.5" r="2.2"/></svg></span>
+      <span class="join quiet-grey">Entrar</span>
+      <span class="pager"><i></i><i class="on"></i><i></i><i></i><i></i></span>
+    </div></div>
+</div>
+  <svg class="notch" width="198" height="38" aria-hidden="true"><path d="M0 0H198A6 6 0 0 0 192 6V26A12 12 0 0 1 180 38H18A12 12 0 0 1 6 26V6A6 6 0 0 0 0 0Z" fill="#000"/></svg>
+</div>
+  <div class="screen wall" style="left:1206px">
+  <i class="orb o1"></i><i class="orb o2"></i><i class="orb o3"></i><i class="orb o4"></i>
+  <div class="mbar"><span class="mb-l"><span style="font-size:15px;line-height:1;margin-top:-1px">&#xF8FF;</span></span><span class="mb-r"><svg width="25" height="12" viewBox="0 0 25 12"><rect x=".6" y=".6" width="21" height="10.8" rx="3.2" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width="1.1"/><rect x="2.2" y="2.2" width="14.5" height="7.6" rx="1.8" fill="#fff"/><path d="M23.2 4v4c.9-.3 1.4-1.1 1.4-2s-.5-1.7-1.4-2z" fill="#fff" fill-opacity=".8"/></svg></span></div>
+  <div class="island" style="left:36px;top:0px;width:468px;height:344px">
+  <div class="isl-shadow" style="left:14px;width:440px"></div>
+  <div class="isl-glass" style="left:14px;width:440px"></div>
+  <svg class="ear" style="left:0" width="14" height="14"><path d="M0 0H14V14A14 14 0 0 0 0 0Z"/></svg>
+  <svg class="ear" style="left:454px" width="14" height="14"><path d="M14 0H0V14A14 14 0 0 1 14 0Z"/></svg>
+  <svg class="isl-edge" width="468" height="344" viewBox="0 0 468 344"><defs><linearGradient id="edge2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".08" stop-color="#fff" stop-opacity=".16"/><stop offset=".6" stop-color="#fff" stop-opacity=".22"/><stop offset="1" stop-color="#fff" stop-opacity=".42"/></linearGradient></defs>
+    <path d="M0 0H468A14 14 0 0 0 454 14V316A28 28 0 0 1 426 344H42A28 28 0 0 1 14 316V14A14 14 0 0 0 0 0Z" fill="none" stroke="url(#edge2)" stroke-width="1"/></svg>
+  <div class="isl-body" style="left:14px;width:440px;height:344px"><div class="hdr"><span class="schip red"><svg class="gl g-red" width="13" height="13" viewBox="0 0 16 16"><circle class="halo" cx="8" cy="8" r="5.6" fill="#FF6159" opacity=".4"/><circle cx="8" cy="8" r="3.7" fill="#FF6159"/></svg><span>1 aguardando</span></span><span class="hgrp"><span class="ibtn" role="button" aria-label="Pomodoro"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="9" r="5.2"/><path d="M8 9V6.3M6.3 2h3.4M12.3 4l.9-.9"/></svg></span><span class="ibtn" role="button" aria-label="Novo chat"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.2 3H4.6A1.6 1.6 0 0 0 3 4.6v6.8A1.6 1.6 0 0 0 4.6 13h6.8a1.6 1.6 0 0 0 1.6-1.6V8.8"/><path d="M12.4 2.4a1.25 1.25 0 0 1 1.8 1.8L8.7 9.8l-2.5.7.7-2.5z"/></svg></span><span class="ibtn" role="button" aria-label="Espelho"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.4 5.9A1.5 1.5 0 0 1 3.9 4.4h1.3l.8-1.3h4l.8 1.3h1.3a1.5 1.5 0 0 1 1.5 1.5v5.2a1.5 1.5 0 0 1-1.5 1.5H3.9a1.5 1.5 0 0 1-1.5-1.5z"/><circle cx="8" cy="8.5" r="2.2"/></svg></span><span class="ibtn" role="button" aria-label="Ajustes"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.86 6.47 L14.49 6.80 L14.49 9.20 L12.86 9.53 L12.52 10.35 L13.44 11.74 L11.74 13.44 L10.35 12.52 L9.53 12.86 L9.20 14.49 L6.80 14.49 L6.47 12.86 L5.65 12.52 L4.26 13.44 L2.56 11.74 L3.48 10.35 L3.14 9.53 L1.51 9.20 L1.51 6.80 L3.14 6.47 L3.48 5.65 L2.56 4.26 L4.26 2.56 L5.65 3.48 L6.47 3.14 L6.80 1.51 L9.20 1.51 L9.53 3.14 L10.35 3.48 L11.74 2.56 L13.44 4.26 L12.52 5.65Z" stroke-linejoin="round"/><circle cx="8" cy="8" r="2"/></svg></span></span></div><div class="tile appr" style="left:8px;top:40px;width:424px;height:296px">
+      <div class="ahead">
+        <span class="aring"><svg width="56" height="56" viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="3.5"/><circle cx="24" cy="24" r="20" fill="none" stroke="#FF7A70" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="79.6 125.7" transform="rotate(-90 24 24)"/></svg><span class="adot"><svg class="gl g-red" width="22" height="22" viewBox="0 0 16 16"><circle class="halo" cx="8" cy="8" r="5.6" fill="#FF6159" opacity=".4"/><circle cx="8" cy="8" r="3.7" fill="#FF6159"/></svg></span></span>
+        <span class="atx"><b>Executar comando</b><span>Ajustar o visual do notch<em>iSland</em></span></span>
+        <span class="acount">19s</span>
+      </div>
+      <div class="cmd">
+        <span class="tool">Bash</span>
+        <code><span class="ln">npm test -- --coverage</span><span class="ln">&amp;&amp; <mark>rm -rf ./tmp-build</mark></span></code>
+      </div>
+      <div class="hintrow">
+        <span class="always">Sempre: Bash(npm test:*)</span>
+        <span class="keys"><span class="key">⌥⌘Y</span><span>permitir</span><span class="key">⌥⌘N</span><span>negar</span></span>
+      </div>
+      <div class="btns">
+        <span class="btn neg">Negar</span><span class="btn term">Terminal</span><span class="btn alw">Sempre</span><span class="btn ok">Permitir</span>
+      </div>
+    </div></div>
+</div>
+  <svg class="notch" width="198" height="38" aria-hidden="true"><path d="M0 0H198A6 6 0 0 0 192 6V26A12 12 0 0 1 180 38H18A12 12 0 0 1 6 26V6A6 6 0 0 0 0 0Z" fill="#000"/></svg>
+</div>
+
+  <div class="cap" style="left:54px"><h3><span class="n">1</span>Pílula recolhida, seis estados</h3><p>O notch só ganha asas quando há algo a dizer. Cada asa é um círculo de 24 pt com o mesmo vocabulário dos anéis de estado.</p></div>
+  <div class="cap" style="left:630px"><h3><span class="n">2</span>Aberta, tudo ativo</h3><p>Anéis de avatar e lista no bloco Agentes, música tingida pela capa, pomodoro com o anel de 30 pontos como herói e o horário da agenda em tamanho grande.</p></div>
+  <div class="cap" style="left:1206px"><h3><span class="n">3</span>Pedido de aprovação</h3><p>Um bloco único toma a grade inteira: o comando em destaque (rm -rf marcado), os atalhos e quatro botões grandes. A contagem vira o anel do avatar.</p></div>
+
+  <section class="strip" aria-label="Variantes e notas">
+    <div class="sb" style="left:24px;width:424px"><h4>Depois de reiniciar <i>só quando nenhuma sessão está viva</i></h4><div class="tile agents flat" style="position:relative;width:424px;height:170px">
+      <div class="thead"><span class="tname">Estavam ativos</span></div>
+      <div class="list" style="top:36px"><div class="row"><span class="slot rec"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3.5v4a2 2 0 0 1-2 2H3.6M6.2 6.6L3.3 9.5l2.9 2.9"/></svg></span><span class="tx"><span class="t">Corrigir os testes da API de pagamentos</span><span class="f">api-server</span></span><span class="d sans">há 3 h</span><span class="xb"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.6 4.6l6.8 6.8M11.4 4.6l-6.8 6.8"/></svg></span></div><div class="row"><span class="slot rec"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3.5v4a2 2 0 0 1-2 2H3.6M6.2 6.6L3.3 9.5l2.9 2.9"/></svg></span><span class="tx"><span class="t">Ajustar o visual do notch</span><span class="f">iSland</span></span><span class="d sans">há 5 h</span><span class="xb"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.6 4.6l6.8 6.8M11.4 4.6l-6.8 6.8"/></svg></span></div><div class="row"><span class="slot rec"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3.5v4a2 2 0 0 1-2 2H3.6M6.2 6.6L3.3 9.5l2.9 2.9"/></svg></span><span class="tx"><span class="t">Nova página de preços</span><span class="f">landing</span></span><span class="d sans">ontem</span><span class="xb"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.6 4.6l6.8 6.8M11.4 4.6l-6.8 6.8"/></svg></span></div></div>
+    </div></div>
+    <div class="sb" style="left:480px;width:424px"><h4>Botão Entrar e comando longo</h4><div class="vrow">
+  <div class="vcol"><span class="join quiet-grey">Entrar</span><span class="vcap">cinza até 5 min antes</span></div>
+  <div class="vcol"><span class="join live">Entrar</span><span class="vcap">verde a partir de 5 min</span></div>
+</div>
+<div class="warnrow">
+  <span class="btn neg sm">Negar</span><span class="btn term sm">Terminal</span>
+  <span class="warn"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.7l5.7 9.9H2.3z" stroke-linejoin="round"/><path d="M8 6.7v2.7"/><circle cx="8" cy="11" r=".5" fill="currentColor"/></svg><span>Longo ou estranho demais para aprovar aqui: confira no terminal</span></span>
+</div></div>
+    <div class="sb" style="left:936px;width:360px">
+      <h4>Movimento <i>sempre na vertical</i></h4>
+      <p><b>Abrir:</b> a ilha cresce do notch para baixo (altura mascarada, ancorada no topo, mola de 0,28 s sem quique). Os blocos descem 8 pt e entram em cascata de 30 ms, de cima para baixo. Nada entra de lado.</p>
+      <p><b>Fechar:</b> 140 ms, ease-out, tudo sobe junto. Na aprovação, a grade vira um bloco só com cross-fade de 160 ms na mesma coluna.</p>
+      <p><b>Parado:</b> só os glifos de status animam.</p>
+    </div>
+    <div class="sb" style="left:1328px;width:340px">
+      <h4>Cinco matizes, uma regra</h4>
+      <div class="sw"><i style="background:linear-gradient(180deg,rgba(150,140,255,.5),rgba(120,110,255,.3))"></i><i style="background:linear-gradient(155deg,rgba(160,80,240,.9),rgba(78,40,160,.9))"></i><i style="background:linear-gradient(160deg,rgba(255,112,84,.8),rgba(255,86,110,.5))"></i><i style="background:linear-gradient(90deg,rgba(76,155,255,.8),rgba(76,155,255,.45))"></i><i style="background:linear-gradient(170deg,rgba(255,128,84,.7),rgba(255,70,100,.45))"></i></div><div class="sw-l"><span>Agentes</span><span>Música</span><span>Pomodoro</span><span>Agenda</span><span>Aprovação</span></div>
+      <p>Blocos de 20 pt contínuos, vão de 6 pt, margem de 8 pt, ilha de 28 pt (cantos concêntricos). Texto sempre em branco sobre o tom, mínimo 11 pt, alvos de 24 pt ou mais.</p>
+    </div>
+  </section>
+</main>
+</body>
+</html>

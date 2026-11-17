@@ -3,6 +3,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow SemVer.
 
 ## [Unreleased]
 ### Added
+- Bento tiles: the open island redesigned as a grid of rounded tiles; approval as one big tile; long commands scroll and can be approved.
 - Multi-display support: island on the main display by default; all displays or one specific display from Settings → Displays.
 - Codex CLI and Gemini CLI support with each agent's own spinner; guided first run; Macs without a notch.
 - Mirror, photo, pomodoro, agenda scrolling, new-chat shortcut, hide in full-screen video.

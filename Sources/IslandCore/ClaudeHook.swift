@@ -68,9 +68,11 @@ public enum ClaudeHook {
 
     static func prompt(tool: String, input: JSONValue?, suggestion: JSONValue?, waitSeconds: Int) -> PermissionPrompt {
         let (title, detail) = describe(tool: tool, input: input)
-        let (clean, hidesSomething) = DisplayText.sanitized(truncated(detail, to: 600))
-        // Whatever the card cannot show in full, the person cannot judge: no one-click yes for it.
-        let review = hidesSomething || detail.count > 600 || PermissionPrompt.estimatedLines(of: clean) > PermissionPrompt.visibleLines
+        // Hidden or direction-changing characters are swapped for a visible mark, so what is shown is what will run; the card
+        // scrolls, so a long command can be read to the end. Only a command too big to keep is cut, and that one cannot be
+        // approved from here.
+        let (clean, _) = DisplayText.sanitized(truncated(detail, to: PermissionPrompt.maxDetailCharacters))
+        let review = detail.count > PermissionPrompt.maxDetailCharacters
         return PermissionPrompt(tool: tool, title: title, detail: clean, alwaysLabel: suggestion.map(label(for:)),
                                 waitSeconds: waitSeconds, needsReview: review)
     }

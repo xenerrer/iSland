@@ -2,8 +2,6 @@ import AppKit
 import IslandCore
 import SwiftUI
 
-private let cardBackground = RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.white.opacity(0.06))
-
 /// Today's agenda in a card the height of one event: it opens on the one in progress (or the next), and scrolling up or
 /// down moves through the rest of the day, one event at a time.
 struct CalendarCard: View {
@@ -25,9 +23,8 @@ struct CalendarCard: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(height: IslandLayout.widgetHeight)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .background(cardBackground)
+        .frame(height: IslandLayout.calendarTileHeight)
+        .bentoTile(.calendar)
     }
 
     private var events: some View {
@@ -40,7 +37,7 @@ struct CalendarCard: View {
                 VStack(spacing: 0) {
                     ForEach(Array(list.enumerated()), id: \.element.id) { index, event in
                         EventRow(event: event, now: now, position: list.count > 1 ? "\(index + 1)/\(list.count)" : nil, onMirror: onMirror)
-                            .frame(height: IslandLayout.widgetHeight)
+                            .frame(height: IslandLayout.calendarTileHeight)
                             .id(event.id)
                     }
                 }
@@ -73,24 +70,25 @@ struct EventRow: View {
     private var isOver: Bool { !event.isAllDay && event.end <= now }
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
             Capsule()
                 .fill(Color(.sRGB, red: event.color[0], green: event.color[1], blue: event.color[2]))
-                .frame(width: 3, height: 34)
+                .frame(width: 4, height: 38)
+            // The time is the headline of the tile: large, so you can read it from across the desk.
+            Text(event.isAllDay ? L10n.t("All day") : event.start.formatted(date: .omitted, time: .shortened))
+                .font(.system(size: event.isAllDay ? 15 : 28, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(isOver ? Color.white.opacity(0.5) : Color.white)
+                .lineLimit(1)
+                .fixedSize()
             VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    Text(event.isAllDay ? L10n.t("All day") : event.start.formatted(date: .omitted, time: .shortened))
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
-                        .monospacedDigit()
-                        .foregroundStyle(isOver ? Color.white.opacity(0.5) : ClaudeSpinner.orange)
-                    Text(event.title.isEmpty ? L10n.t("(untitled)") : event.title)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Color.white)
-                        .lineLimit(1)
-                }
+                Text(event.title.isEmpty ? L10n.t("(untitled)") : event.title)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.white)
+                    .lineLimit(1)
                 Text(subtitle)
                     .font(.system(size: 11))
-                    .foregroundStyle(Color.white.opacity(0.6))
+                    .foregroundStyle(Color.white.opacity(0.8))
                     .lineLimit(1)
             }
             Spacer(minLength: 4)
@@ -105,15 +103,18 @@ struct EventRow: View {
                 let urgent = Agenda.joinIsUrgent(event, now: now)
                 Button(L10n.t("Join")) { NSWorkspace.shared.open(url) }
                     .buttonStyle(CapsuleButtonStyle(fill: urgent ? Color(red: 0.3, green: 0.85, blue: 0.45) : Color.white.opacity(0.12),
-                                                    foreground: urgent ? Color.black.opacity(0.85) : Color.white.opacity(0.55)))
+                                                    foreground: urgent ? Color.black.opacity(0.85) : Color.white))
             }
         }
-        .padding(.horizontal, 12)
-        .opacity(isOver ? 0.55 : 1)
+        .padding(.horizontal, 14)
+        .opacity(isOver ? 0.75 : 1)
     }
 
+    /// "em 38 min · Trabalho · 2/5". With a join link there is little room, so the calendar's name goes first: the position
+    /// ("2/5", which tells you the tile scrolls) always stays.
     private var subtitle: String {
         let when = event.isAllDay ? "" : L10n.timing(Agenda.timing(of: event, now: now))
-        return [when, event.calendarName, position ?? ""].filter { !$0.isEmpty }.joined(separator: " · ")
+        let calendar = event.joinURL == nil ? event.calendarName : ""
+        return [when, calendar, position ?? ""].filter { !$0.isEmpty }.joined(separator: " · ")
     }
 }

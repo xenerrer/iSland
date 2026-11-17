@@ -484,7 +484,8 @@ final class SessionStore: ObservableObject {
     /// The projects to offer, when the live list leaves room: not live now, newest first, and none while a question waits.
     var visibleRecents: [RecentProject] {
         guard requests.isEmpty else { return [] }
-        let limit = min(IslandLayout.maxRecents, max(0, IslandLayout.maxRows + 1 - sessions.count))
+        // Room is shared with the live sessions: the more of them, the fewer suggestions (none from four on).
+        let limit = min(IslandLayout.maxRecents, max(0, IslandLayout.recentsBudget - sessions.count))
         let liveKeys = Set(sessions.values.map(Self.historyKey(for:)))
         let liveFolders = Set(sessions.values.compactMap { s in s.cwd.map { "\(s.agent)|\($0)" } })
         return history.resumable(liveKeys: liveKeys, liveFolders: liveFolders, limit: limit)

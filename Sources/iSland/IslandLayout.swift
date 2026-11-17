@@ -47,14 +47,33 @@ struct IslandLayout: Equatable {
     var alwaysDrawsPill = false
 
     static let openWidth: CGFloat = 440
-    /// A line of text: "No active agents", "+3 more".
-    static let rowHeight: CGFloat = 28
     /// A session: the chat's name over the folder it works in.
-    static let sessionRowHeight: CGFloat = 38
+    static let sessionRowHeight: CGFloat = 36
     /// The most room a row gives the status on its right ("Run: npm test? "): longer texts are cut in the middle.
     static let detailMaxWidth: CGFloat = 170
-    static let rowSpacing: CGFloat = 6
     static let maxRows = 5
+
+    // MARK: Bento tiles (the open island is a grid of rounded tiles)
+
+    /// Tiles are continuous rounded rectangles; the island's own bottom corners are 28, so these sit concentric with it
+    /// at an 8 pt margin.
+    static let tileRadius: CGFloat = 20
+    static let tileGap: CGFloat = 6
+    /// Between the notch strip and the first tile, and under the last tile.
+    static let bentoTop: CGFloat = 6
+    static let bentoBottom: CGFloat = 8
+    static let islandBottomRadius: CGFloat = 28
+    /// The agents tile: a header with the count and the avatar rail, then the session rows.
+    static let agentsHeaderHeight: CGFloat = 30
+    static let agentsTileTop: CGFloat = 8
+    static let agentsTileBottom: CGFloat = 6
+    /// The agents rail on its own, shown under a waiting question.
+    static let railTileHeight: CGFloat = 44
+    /// Music and pomodoro share a row; side by side they are squarer, alone they are one wide strip.
+    static let mediaPairHeight: CGFloat = 128
+    static let mediaSingleHeight: CGFloat = 84
+    static let calendarTileHeight: CGFloat = 64
+    static let placeholderTileHeight: CGFloat = 44
     /// Extra room on each side of the physical notch where status indicators live when collapsed (only while there is
     /// something to report: otherwise the pill is just the notch).
     static let indicatorWing: CGFloat = 30
@@ -64,10 +83,6 @@ struct IslandLayout: Equatable {
     static let sidePadding: CGFloat = 22
     static let topGap: CGFloat = 8
     static let bottomPadding: CGFloat = 14
-    /// A music or calendar card.
-    static let widgetHeight: CGFloat = 56
-    /// The focus card.
-    static let compactWidgetHeight: CGFloat = 44
     static let panelWidth: CGFloat = openWidth + 80
     /// The transparent panel the island is drawn in; bigger than any state of the island.
     static let panelHeight: CGFloat = 600
@@ -85,9 +100,23 @@ struct IslandLayout: Equatable {
 
     // MARK: Approval card
 
-    /// Everything in the card except the command text: header, spacing, buttons and padding.
-    private static let cardChrome: CGFloat = 124
+    // The card is a column of five parts with `approvalSpacing` between them, inside `approvalPadding` on every side. The view
+    // draws with these same numbers, so the height below is what it needs by construction (it once drifted by 20 pt and the
+    // buttons were cut off).
+    static let approvalPadding: CGFloat = 12
+    static let approvalSpacing: CGFloat = 10
+    static let approvalHeaderHeight: CGFloat = 46
+    /// The well around the command: tool pill (16) + gap (4) + vertical padding (16), without the text itself.
+    static let approvalWellChrome: CGFloat = 36
+    static let approvalHintsHeight: CGFloat = 18
+    static let approvalButtonsHeight: CGFloat = 40
     private static let detailLineHeight: CGFloat = 15
+
+    /// Everything in the card except the command text.
+    static var cardChrome: CGFloat {
+        2 * approvalPadding + approvalHeaderHeight + approvalWellChrome + approvalHintsHeight + approvalButtonsHeight
+            + 4 * approvalSpacing
+    }
 
     /// How many lines the command box shows (1...6), estimated from the text.
     static func detailLines(_ text: String) -> Int {
@@ -142,28 +171,57 @@ struct IslandLayout: Equatable {
         sessions == 0 && !request && !widgets.any && recents == 0
     }
 
-    /// Past `maxRows` the list scrolls inside a window that shows `maxRows - 0.5` rows: the half row peeking out at the bottom
-    /// says there is more.
-    static var scrollingListHeight: CGFloat {
-        (CGFloat(maxRows) - 0.5) * sessionRowHeight + CGFloat(maxRows - 1) * rowSpacing
-    }
-
-    /// Projects that were active before a restart: a small heading, then a row each.
-    static let recentHeaderHeight: CGFloat = 20
-    static let recentRowHeight: CGFloat = 38
+    /// Projects that were active before a restart: a small heading, then a row each, in a quiet tile.
+    static let recentHeaderHeight: CGFloat = 22
+    static let recentRowHeight: CGFloat = 36
     static let maxRecents = 4
-    static func recentHeights(count: Int) -> [CGFloat] {
-        count > 0 ? [recentHeaderHeight] + Array(repeating: recentRowHeight, count: count) : []
+    /// Live sessions and suggestions share the room: with this many sessions or more there are no suggestions.
+    static let recentsBudget = 4
+    static func recentsTileHeight(count: Int) -> CGFloat? {
+        count > 0 ? agentsTileTop + recentHeaderHeight + CGFloat(count) * recentRowHeight + agentsTileBottom : nil
     }
 
-    /// The session list: a row per session up to `maxRows`, then one scrolling window over all of them.
-    static func sessionRowHeights(sessions: Int) -> [CGFloat] {
-        if sessions > maxRows { return [scrollingListHeight] }
-        return Array(repeating: sessionRowHeight, count: sessions)
+    /// Past `maxRows` the rows scroll inside a window that shows `maxRows - 0.5` of them: the half row peeking out at the
+    /// bottom says there is more.
+    static var scrollingRowsHeight: CGFloat { (CGFloat(maxRows) - 0.5) * sessionRowHeight }
+
+    static func rowsHeight(sessions: Int) -> CGFloat {
+        sessions > maxRows ? scrollingRowsHeight : CGFloat(sessions) * sessionRowHeight
     }
 
-    /// The open island stacks its children with equal spacing: the question, the sessions, then music and calendar.
-    /// Widgets give way while a question is waiting, so the card has the island's full attention.
+    /// The agents tile, nil when there is no session.
+    static func agentsTileHeight(sessions: Int) -> CGFloat? {
+        sessions > 0 ? agentsTileTop + agentsHeaderHeight + rowsHeight(sessions: sessions) + agentsTileBottom : nil
+    }
+
+    /// The music / pomodoro row, nil when neither is showing.
+    static func mediaRowHeight(widgets: WidgetPresence) -> CGFloat? {
+        switch (widgets.music, widgets.focus) {
+        case (true, true): mediaPairHeight
+        case (false, false): nil
+        default: mediaSingleHeight
+        }
+    }
+
+    /// The tiles of the open island, top to bottom. A waiting question takes the grid: its tile, and under it only a slim
+    /// rail of the agents; the music, pomodoro and calendar tiles give way.
+    static func tileHeights(sessions: Int, request: PermissionPrompt?, widgets: WidgetPresence, recents: Int) -> [CGFloat] {
+        var tiles: [CGFloat] = []
+        if let request {
+            tiles.append(cardHeight(for: request))
+            if sessions > 0 { tiles.append(railTileHeight) }
+            return tiles
+        }
+        if showsPlaceholder(sessions: sessions, request: false, widgets: widgets, recents: recents) { tiles.append(placeholderTileHeight) }
+        if let agents = agentsTileHeight(sessions: sessions) { tiles.append(agents) }
+        if let recent = recentsTileHeight(count: recents) { tiles.append(recent) }
+        if let media = mediaRowHeight(widgets: widgets) { tiles.append(media) }
+        if widgets.calendar { tiles.append(calendarTileHeight) }
+        return tiles
+    }
+
+    /// The open island is a grid of tiles with equal gaps: the agents, what you were working on, music and pomodoro, the
+    /// calendar. A waiting question takes the grid (see `tileHeights`).
     func size(open: Bool, sessions: Int, request: PermissionPrompt?, widgets: WidgetPresence, closedStatus: Bool,
               mode: IslandMode = .list, recents: Int = 0) -> CGSize {
         guard open else {
@@ -188,18 +246,9 @@ struct IslandLayout: Equatable {
                 return CGSize(width: Self.newChatWidth, height: notch.height + Self.topGap + content + Self.bottomPadding)
             }
         }
-        var children: [CGFloat] = []
-        if let request { children.append(Self.cardHeight(for: request)) }
-        if Self.showsPlaceholder(sessions: sessions, request: request != nil, widgets: widgets, recents: recents) { children.append(Self.rowHeight) }
-        children += Self.sessionRowHeights(sessions: sessions)
-        if request == nil {
-            children += Self.recentHeights(count: recents)
-            if widgets.focus { children.append(Self.compactWidgetHeight) }
-            if widgets.music { children.append(Self.widgetHeight) }
-            if widgets.calendar { children.append(Self.widgetHeight) }
-        }
-        let content = children.reduce(0, +) + CGFloat(max(0, children.count - 1)) * Self.rowSpacing
-        return CGSize(width: Self.openWidth, height: notch.height + Self.topGap + content + Self.bottomPadding)
+        let tiles = Self.tileHeights(sessions: sessions, request: request, widgets: widgets, recents: recents)
+        let content = tiles.reduce(0, +) + CGFloat(max(0, tiles.count - 1)) * Self.tileGap
+        return CGSize(width: Self.openWidth, height: notch.height + Self.bentoTop + content + Self.bentoBottom)
     }
 
     @MainActor

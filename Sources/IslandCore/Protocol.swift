@@ -12,8 +12,9 @@ public struct PermissionPrompt: Codable, Equatable, Sendable {
     public var alwaysLabel: String?
     /// How long the hook keeps waiting before it hands the question back to the agent's own terminal.
     public var waitSeconds: Int
-    /// The island could not show everything that will happen (too long to fit, or it hides characters), so it must not offer
-    /// a one-click yes: the answer then belongs in the agent's own terminal.
+    /// The command is so big (past `maxDetailCharacters`) that the island had to cut it off: there is part nobody can read
+    /// here, so it offers no one-click yes and the answer belongs in the agent's own terminal. Anything shorter is allowed:
+    /// the card scrolls, so all of it can be read.
     public var needsReview: Bool
 
     public init(tool: String, title: String, detail: String, alwaysLabel: String? = nil, waitSeconds: Int, needsReview: Bool = false) {
@@ -38,6 +39,13 @@ public struct PermissionPrompt: Codable, Equatable, Sendable {
     /// How many lines of the card the detail can take, and how much fits on one (a conservative estimate: monospaced text).
     public static let visibleLines = 6
     public static let charactersPerLine = 46
+    /// The most text the card keeps (it scrolls inside its box); more than this is cut and cannot be approved from here.
+    public static let maxDetailCharacters = 8000
+
+    /// More than fits in the box: it scrolls.
+    public var isLong: Bool { Self.estimatedLines(of: detail) > Self.visibleLines }
+    /// Invisible or direction-changing characters were replaced by a visible mark (⍰) in the text.
+    public var hasHiddenCharacters: Bool { detail.unicodeScalars.contains("\u{2370}") }
 
     public static func estimatedLines(of text: String) -> Int {
         max(1, text.split(separator: "\n", omittingEmptySubsequences: false)

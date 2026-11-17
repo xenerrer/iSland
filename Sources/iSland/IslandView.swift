@@ -36,7 +36,7 @@ struct IslandView: View {
     }
     /// Glass only when open: the closed pill stays black so it fuses with the hardware notch.
     private var usesGlass: Bool { open && appearance.style != .solid && !appearance.reduceTransparency }
-    private var shape: NotchShape { NotchShape(topRadius: open ? 14 : IslandLayout.closedEar, bottomRadius: open ? 26 : 12) }
+    private var shape: NotchShape { NotchShape(topRadius: open ? 14 : IslandLayout.closedEar, bottomRadius: open ? IslandLayout.islandBottomRadius : 12) }
     private var motion: Animation { appearance.reduceMotion ? .easeOut(duration: 0.12) : (open ? Motion.open(appearance.motionStyle) : Motion.close(appearance.motionStyle)) }
 
     /// Without a hardware notch, the collapsed pill disappears while it has nothing to report.
@@ -215,54 +215,27 @@ struct IslandView: View {
     private var openContent: some View {
         VStack(spacing: 0) {
             header
-            VStack(alignment: .leading, spacing: IslandLayout.rowSpacing) {
+            VStack(spacing: IslandLayout.tileGap) {
                 if let request = store.requests.first {
+                    // A question takes the grid: its tile, and under it only the rings of the agents.
                     ApprovalCard(request: request, chat: store.displayName(forSession: request.sessionId) ?? request.project,
                                  inChat: store.sessions[request.sessionId]?.chatId != nil,
                                  queued: store.requests.count - 1, showsShortcuts: store.hotkeysActive) {
                         store.answer(request.id, $0)
                     }
-                }
-                if IslandLayout.showsPlaceholder(sessions: store.sessions.count, request: !store.requests.isEmpty, widgets: presence,
-                                                 recents: store.visibleRecents.count) {
-                    Text(L10n.t("No active agents"))
-                        .font(.system(size: 13))
-                        .foregroundStyle(Color.white.opacity(0.6))
-                        .frame(height: IslandLayout.rowHeight)
-                }
-                if store.ordered.count > IslandLayout.maxRows {
-                    // More than fit: all of them, in a window that scrolls (the half row at the bottom shows there is more).
-                    ScrollView(.vertical, showsIndicators: false) {
-                        VStack(spacing: IslandLayout.rowSpacing) {
-                            ForEach(store.ordered) { session in
-                                SessionRow(session: session, isCurrent: store.currentSessionId == session.id, hover: store.rowHover,
-                                           onFocus: { store.focus(session.id) }, onDismiss: { store.dismiss(session.id) })
-                            }
-                        }
-                    }
-                    .frame(height: IslandLayout.scrollingListHeight)
+                    if !store.sessions.isEmpty { AgentsRailTile(store: store) }
                 } else {
-                    ForEach(store.ordered) { session in
-                        SessionRow(session: session, isCurrent: store.currentSessionId == session.id, hover: store.rowHover,
-                                       onFocus: { store.focus(session.id) }, onDismiss: { store.dismiss(session.id) })
+                    let recents = store.visibleRecents
+                    if IslandLayout.showsPlaceholder(sessions: store.sessions.count, request: false, widgets: presence, recents: recents.count) {
+                        PlaceholderTile()
                     }
-                }
-                // What you were working on before the restart, when nothing live fills the list.
-                let recents = store.visibleRecents
-                if !recents.isEmpty {
-                    Text(L10n.t("Were active"))
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Color.white.opacity(0.45))
-                        .frame(maxWidth: .infinity, minHeight: IslandLayout.recentHeaderHeight, maxHeight: IslandLayout.recentHeaderHeight, alignment: .leading)
-                        .padding(.leading, 4)
-                    ForEach(recents) { project in
-                        RecentRow(project: project, hover: store.rowHover, onResume: { store.resume(project) }, onForget: { store.forget(project) })
+                    if !store.sessions.isEmpty { AgentsTile(store: store) }
+                    if !recents.isEmpty {
+                        RecentsTile(recents: recents, hover: store.rowHover, onResume: { store.resume($0) }, onForget: { store.forget($0) })
                     }
-                }
-                // Music and calendar give way while a question is waiting.
-                if store.requests.isEmpty {
-                    if presence.focus { FocusCard(focus: widgets.focus) }
-                    if presence.music { MusicCard(music: widgets.music) }
+                    if presence.music || presence.focus {
+                        MediaRow(music: presence.music ? widgets.music : nil, focus: presence.focus ? widgets.focus : nil)
+                    }
                     if presence.calendar {
                         CalendarCard(calendar: widgets.calendar, onMirror: { url in
                             store.mirrorJoinURL = url
@@ -271,10 +244,10 @@ struct IslandView: View {
                     }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .top)
             .padding(.horizontal, IslandLayout.sidePadding)
-            .padding(.top, IslandLayout.topGap)
-            .padding(.bottom, IslandLayout.bottomPadding)
+            .padding(.top, IslandLayout.bentoTop)
+            .padding(.bottom, IslandLayout.bentoBottom)
         }
         .frame(width: contentWidth, alignment: .top)
         .transition(Motion.content(appearance.motionStyle))
@@ -287,11 +260,16 @@ struct IslandView: View {
             HStack(spacing: 6) {
                 if store.overall != .idle { StatusGlyph(state: store.overall, agent: store.workingAgent) } // at rest, the words are enough
                 Text(summary)
-                    .font(.system(size: 11.5, weight: .medium))
-                    .foregroundStyle(Color.white.opacity(0.8))
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(0.85))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
-            .padding(.leading, IslandLayout.sidePadding)
+            .padding(.horizontal, 7)
+            .frame(height: 24)
+            .background(Capsule().fill(Color.white.opacity(0.12)))
+            // The island's body starts 14 pt in (the flared corner); the chip keeps a little air from that edge.
+            .padding(.leading, IslandLayout.sidePadding - 6)
             .frame(width: wing, alignment: .leading)
             Color.clear.frame(width: layout.notch.width)
             HStack(spacing: 2) {
@@ -489,21 +467,24 @@ struct SessionRow: View {
             Spacer(minLength: 8)
             SessionDetail(session: session)
                 .font(.system(size: 11.5))
-                .foregroundStyle(Color.white.opacity(0.6))
+                .foregroundStyle(Color.white.opacity(0.78))
                 .lineLimit(1)
                 .truncationMode(.middle)
                 // The name gives way, never the status; but the status itself has a ceiling, or one long text would make the
                 // row wider than the island and push every row out of it on both sides.
                 .frame(maxWidth: IslandLayout.detailMaxWidth, alignment: .trailing)
+                // Its own width up to the cap: without this the frame would take the whole 170 pt whatever the text needs, and
+                // the chat's name would be cut with room to spare.
+                .fixedSize(horizontal: true, vertical: false)
                 .layoutPriority(2)
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
                     .font(.system(size: 8.5, weight: .bold))
-                    .frame(width: 22, height: 24)
+                    .frame(width: 24, height: 24)
             }
             .buttonStyle(DismissButtonStyle())
             .help(L10n.t("Remove from the list"))
-            .accessibilityLabel(L10n.t("Remove from the list"))
+            .accessibilityLabel(L10n.t("Remove from the list") + ": " + (session.title ?? session.project))
         }
         .frame(height: IslandLayout.sessionRowHeight)
         // The chat you are in gets a soft plate that reaches a little past the row's content.
@@ -514,6 +495,8 @@ struct SessionRow: View {
         .background(HoverTracker { [hover, id = session.id] inside in hover.set(id, inside) })
         .contentShape(Rectangle())
         .onTapGesture(perform: onFocus) // jump to this chat (or to the app that hosts the session)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction(.default, onFocus)
     }
 }
 
@@ -536,18 +519,18 @@ struct RecentRow: View {
         HStack(spacing: 8) {
             Image(systemName: "arrow.uturn.backward.circle")
                 .font(.system(size: 13))
-                .foregroundStyle(Color.white.opacity(0.4))
+                .foregroundStyle(Color.white.opacity(0.65))
                 .frame(width: 16, height: 16)
             VStack(alignment: .leading, spacing: 2) {
                 Text(project.title ?? project.project)
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Color.white.opacity(0.78))
+                    .foregroundStyle(Color.white.opacity(0.9))
                     .lineLimit(1)
                 HStack(spacing: 6) {
                     if project.title != nil { FolderLabel(name: project.project) }
                     Text(Self.formatter.localizedString(for: project.lastActive, relativeTo: Date()))
                         .font(.system(size: 10.5))
-                        .foregroundStyle(Color.white.opacity(0.4))
+                        .foregroundStyle(Color.white.opacity(0.72))
                         .lineLimit(1)
                 }
             }
@@ -555,11 +538,11 @@ struct RecentRow: View {
             Button(action: onForget) {
                 Image(systemName: "xmark")
                     .font(.system(size: 8.5, weight: .bold))
-                    .frame(width: 22, height: 24)
+                    .frame(width: 24, height: 24)
             }
             .buttonStyle(DismissButtonStyle())
             .help(L10n.t("Forget this project"))
-            .accessibilityLabel(L10n.t("Forget this project"))
+            .accessibilityLabel(L10n.t("Forget this project") + ": " + (project.title ?? project.project))
         }
         .frame(height: IslandLayout.recentRowHeight)
         .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.white.opacity(hovered ? 0.07 : 0))
@@ -568,6 +551,8 @@ struct RecentRow: View {
         .background(HoverTracker { [hover, key = project.key] inside in hover.set(key, inside) })
         .contentShape(Rectangle())
         .onTapGesture(perform: onResume)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction(.default, onResume)
         .help(L10n.t("Go back to this project"))
     }
 }
@@ -581,7 +566,7 @@ struct FolderLabel: View {
             Text(name).lineLimit(1)
         }
         .font(.system(size: 10.5))
-        .foregroundStyle(Color.white.opacity(0.45))
+        .foregroundStyle(Color.white.opacity(0.72))
     }
 }
 
@@ -593,7 +578,7 @@ struct ModeBadgeView: View {
         // Just the icon: the words are in the tooltip, and a row should not shout about its mode.
         Image(systemName: badge.symbol)
             .font(.system(size: 9))
-            .foregroundStyle(Color.white.opacity(0.4))
+            .foregroundStyle(Color.white.opacity(0.65))
             .help(badge.help)
             .accessibilityLabel(badge.text)
     }
@@ -602,7 +587,7 @@ struct ModeBadgeView: View {
 struct DismissButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .foregroundStyle(Color.white.opacity(configuration.isPressed ? 0.95 : 0.35))
+            .foregroundStyle(Color.white.opacity(configuration.isPressed ? 0.95 : 0.6))
             .contentShape(Rectangle())
     }
 }
@@ -646,63 +631,154 @@ struct ApprovalCard: View {
     let answer: (Decision) -> Void
 
     private var prompt: PermissionPrompt { request.prompt }
+    private static let alarm = Color(red: 1, green: 0.34, blue: 0.30)
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Image(systemName: symbol)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(ClaudeSpinner.orange)
-                Text(L10n.t(prompt.title))
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color.white)
-                Text(chat)
-                    .font(.system(size: 12))
-                    .foregroundStyle(Color.white.opacity(0.55))
-                    .lineLimit(1)
-                Spacer(minLength: 8)
-                Countdown(deadline: request.deadline)
-            }
-            Text(prompt.detail.isEmpty ? L10n.t("(no details)") : prompt.detail)
-                .font(.system(size: 12, design: .monospaced))
-                .foregroundStyle(Color.white.opacity(0.92))
-                .lineLimit(PermissionPrompt.visibleLines)
-                .truncationMode(.tail)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(8)
-                .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Color.white.opacity(0.08)))
-            HStack(spacing: 8) {
-                if prompt.needsReview {
-                    Label(L10n.t("Too long or odd to approve here: check it in the terminal"), systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(Color(red: 1, green: 0.62, blue: 0.4))
-                        .lineLimit(1)
-                } else {
-                    Text(prompt.alwaysLabel.map { L10n.t("Always: ") + $0.replacingOccurrences(of: "Always allow ", with: "") } ?? "")
-                        .lineLimit(1)
-                }
-                Spacer(minLength: 4)
-                if showsShortcuts && !prompt.needsReview { Text(L10n.t("⌥⌘Y allow   ⌥⌘N deny")) }
-            }
-            .font(.system(size: 11))
-            .foregroundStyle(Color.white.opacity(0.45))
-            .frame(height: 16)
+        VStack(alignment: .leading, spacing: IslandLayout.approvalSpacing) {
+            header
+            command
+            hints
             Spacer(minLength: 0)
-            HStack(spacing: 8) {
-                IslandButton(title: L10n.t("Deny"), kind: .deny) { answer(.deny) }
-                Spacer(minLength: 4)
-                if queued > 0 {
-                    Text(L10n.n("+%d waiting", queued)).font(.system(size: 11)).foregroundStyle(Color.white.opacity(0.5))
+            buttons
+        }
+        .padding(IslandLayout.approvalPadding)
+        .frame(maxWidth: .infinity)
+        .frame(height: IslandLayout.cardHeight(for: prompt), alignment: .top)
+        .bentoTile(.approval)
+    }
+
+    /// The tool's icon in a ring that empties as the time runs out, the question's title, and the seconds left, big.
+    private var header: some View {
+        TimelineView(.periodic(from: Clock.epoch, by: 1)) { context in
+            let remaining = max(0, request.deadline.timeIntervalSince(context.date))
+            let total = max(1, request.deadline.timeIntervalSince(request.receivedAt))
+            let seconds = Int(remaining.rounded(.up))
+            let late = seconds <= 5
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle().stroke(Color.white.opacity(0.18), lineWidth: 3.5)
+                    Circle()
+                        .trim(from: 0, to: min(1, remaining / total))
+                        .stroke(late ? Self.alarm : BentoTint.approval.color, style: StrokeStyle(lineWidth: 3.5, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                    Image(systemName: symbol)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(late ? Self.alarm : BentoTint.approval.color)
+                        .accessibilityHidden(true)
                 }
-                IslandButton(title: L10n.t(inChat ? "In chat" : "Terminal"), kind: .neutral) { answer(.terminal) }
-                if prompt.alwaysLabel != nil && !prompt.needsReview {
-                    IslandButton(title: L10n.t("Always"), kind: .always) { answer(.allowAlways) }
+                .frame(width: 46, height: 46)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(L10n.t(prompt.title))
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Color.white)
+                        .lineLimit(1)
+                    HStack(spacing: 4) {
+                        Text(chat).lineLimit(1)
+                        // Kept out of the string that gets cut: the name gives way, the count of waiting questions never does.
+                        if queued > 0 { Text("· " + L10n.n("+%d waiting", queued)).lineLimit(1).fixedSize().layoutPriority(1) }
+                    }
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.white.opacity(0.82))
                 }
-                if !prompt.needsReview { IslandButton(title: L10n.t("Allow"), kind: .allow) { answer(.allow) } }
+                Spacer(minLength: 0)
+                Text("\(seconds)s")
+                    .font(.system(size: 34, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    // White even when late: red digits on the orange tile are harder to read exactly when it matters. The ring
+                    // and the icon turn red instead.
+                    .foregroundStyle(Color.white)
+                    .fixedSize()
             }
         }
-        .padding(12)
-        .frame(height: IslandLayout.cardHeight(for: prompt))
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.white.opacity(0.06)))
+        .frame(height: IslandLayout.approvalHeaderHeight)
+    }
+
+    /// What is about to run, in a well: the tool, then the text, with the dangerous words marked. A long text scrolls in
+    /// the well, so all of it can be read before saying yes.
+    private var command: some View {
+        let text = Text(Self.highlighted(prompt.detail.isEmpty ? L10n.t("(no details)") : prompt.detail))
+            .font(.system(size: 12, design: .monospaced))
+            .foregroundStyle(Color.white.opacity(0.92))
+        return VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                Text(ToolName.display(prompt.tool))
+                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(Color.white.opacity(0.78))
+                    .padding(.horizontal, 6)
+                    .frame(height: 16)
+                    .background(Capsule().fill(Color.white.opacity(0.14)))
+                Spacer(minLength: 4)
+                if prompt.hasHiddenCharacters {
+                    Label(L10n.t("Has hidden characters (⍰)"), systemImage: "eye.slash")
+                        .font(.system(size: 10.5, weight: .medium))
+                        .foregroundStyle(Color(red: 1, green: 0.72, blue: 0.45))
+                        .lineLimit(1)
+                } else if prompt.isLong {
+                    Label(L10n.t("Scroll to read it all"), systemImage: "arrow.up.and.down")
+                        .font(.system(size: 10.5, weight: .medium))
+                        .foregroundStyle(Color.white.opacity(0.6))
+                        .lineLimit(1)
+                }
+            }
+            if prompt.isLong {
+                ScrollView(.vertical, showsIndicators: false) {
+                    text.frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(height: CGFloat(PermissionPrompt.visibleLines) * 15)
+                .mask(alignment: .top) {
+                    // the last line fades, so it is clear there is more under it
+                    VStack(spacing: 0) {
+                        Color.black
+                        LinearGradient(colors: [.black, .black.opacity(0.25)], startPoint: .top, endPoint: .bottom).frame(height: 14)
+                    }
+                }
+            } else {
+                text
+                    .lineLimit(PermissionPrompt.visibleLines)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.black.opacity(0.30)))
+    }
+
+    private var hints: some View {
+        HStack(spacing: 8) {
+            if prompt.needsReview {
+                Label {
+                    Text(L10n.t("Too big to approve here: check it in the terminal")).foregroundStyle(Color.white.opacity(0.92))
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Color(red: 1, green: 0.72, blue: 0.45))
+                }
+                .lineLimit(1)
+            } else {
+                Text(prompt.alwaysLabel.map { L10n.t("Always: ") + $0.replacingOccurrences(of: "Always allow ", with: "") } ?? "")
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 4)
+            if showsShortcuts && !prompt.needsReview {
+                KeyHint(keys: "⌥⌘Y", label: L10n.t("Allow").lowercased())
+                KeyHint(keys: "⌥⌘N", label: L10n.t("Deny").lowercased())
+            }
+        }
+        .font(.system(size: 11))
+        .foregroundStyle(Color.white.opacity(0.8))
+        .frame(height: IslandLayout.approvalHintsHeight)
+    }
+
+    private var buttons: some View {
+        HStack(spacing: 8) {
+            IslandButton(title: L10n.t("Deny"), kind: .deny, large: true) { answer(.deny) }
+            Spacer(minLength: 4)
+            IslandButton(title: L10n.t(inChat ? "In chat" : "Terminal"), kind: .neutral, large: true) { answer(.terminal) }
+            if prompt.alwaysLabel != nil && !prompt.needsReview {
+                IslandButton(title: L10n.t("Always"), kind: .always, large: true) { answer(.allowAlways) }
+            }
+            if !prompt.needsReview { IslandButton(title: L10n.t("Allow"), kind: .allow, large: true) { answer(.allow) } }
+        }
+        .frame(height: IslandLayout.approvalButtonsHeight)
     }
 
     private var symbol: String {
@@ -714,18 +790,37 @@ struct ApprovalCard: View {
         default: prompt.tool.hasPrefix("mcp__") ? "puzzlepiece.extension" : "questionmark.circle"
         }
     }
+
+    /// Words that deserve a second look are drawn in red. Only a visual aid: it never decides anything.
+    static func highlighted(_ text: String) -> AttributedString {
+        var attributed = AttributedString(text)
+        let risky = ["rm -rf", "rm -fr", "sudo", "chown -R", "chmod -R", "git push --force", "git push -f", "git reset --hard",
+                     "DROP TABLE", "DROP DATABASE", "mkfs", "dd if="]
+        for word in risky {
+            var from = attributed.startIndex
+            while from < attributed.endIndex, let range = attributed[from...].range(of: word, options: .caseInsensitive) {
+                attributed[range].foregroundColor = Color(red: 1, green: 0.45, blue: 0.40)
+                from = range.upperBound
+            }
+        }
+        return attributed
+    }
 }
 
-/// Seconds left before the hook hands the question back to the terminal.
-struct Countdown: View {
-    let deadline: Date
+/// A keyboard shortcut and what it does: "⌥⌘Y permitir".
+struct KeyHint: View {
+    let keys: String
+    let label: String
 
     var body: some View {
-        TimelineView(.periodic(from: Clock.epoch, by: 1)) { context in
-            let seconds = max(0, Int(deadline.timeIntervalSince(context.date).rounded(.up)))
-            Text("\(seconds)s")
-                .font(.system(size: 11, weight: .medium, design: .monospaced))
-                .foregroundStyle(Color.white.opacity(seconds <= 5 ? 0.9 : 0.5))
+        HStack(spacing: 4) {
+            Text(keys)
+                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                .foregroundStyle(Color.white.opacity(0.95))
+                .padding(.horizontal, 5)
+                .frame(height: 16)
+                .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(Color.white.opacity(0.12)))
+            Text(label)
         }
     }
 }
@@ -737,26 +832,28 @@ struct IslandButton: View {
 
     let title: String
     let kind: Kind
+    /// The approval tile's big pills (about 40 pt tall).
+    var large = false
     let action: () -> Void
 
     var body: some View {
-        Button(title, action: action).buttonStyle(CapsuleButtonStyle(fill: fill, foreground: foreground))
+        Button(title, action: action).buttonStyle(CapsuleButtonStyle(fill: fill, foreground: foreground, large: large))
     }
 
     private var fill: Color {
         switch kind {
-        case .deny: Color(red: 1, green: 0.27, blue: 0.23).opacity(0.34)
-        case .neutral: Color.white.opacity(0.15)
-        case .always: Color(red: 0.2, green: 0.8, blue: 0.4).opacity(0.22)
+        case .deny: Color(red: 0.86, green: 0.20, blue: 0.18).opacity(0.62)
+        case .neutral: Color.white.opacity(0.18)
+        case .always: Color(red: 0.2, green: 0.8, blue: 0.4).opacity(0.26)
         case .allow: Color(red: 0.3, green: 0.85, blue: 0.45)
         }
     }
 
     private var foreground: Color {
         switch kind {
-        case .deny: Color(red: 1, green: 0.62, blue: 0.58)
+        case .deny: Color.white
         case .neutral: Color.white
-        case .always: Color(red: 0.5, green: 0.92, blue: 0.6)
+        case .always: Color(red: 0.76, green: 1.0, blue: 0.80)
         case .allow: Color.black.opacity(0.85)
         }
     }
@@ -765,12 +862,14 @@ struct IslandButton: View {
 struct CapsuleButtonStyle: ButtonStyle {
     let fill: Color
     let foreground: Color
+    var large = false
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 12, weight: .semibold))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 5)
+            .font(.system(size: large ? 13 : 12, weight: .semibold))
+            .padding(.horizontal, large ? 16 : 12)
+            .frame(height: large ? 38 : nil)
+            .padding(.vertical, large ? 0 : 5)
             .background(Capsule().fill(fill))
             .foregroundStyle(foreground)
             .opacity(configuration.isPressed ? 0.6 : 1)

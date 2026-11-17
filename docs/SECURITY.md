@@ -6,7 +6,7 @@ O iSland roda como o usuário, sem rede, e conversa com os agentes (Claude Code,
 | Ativo | Ameaça | Mitigação |
 |---|---|---|
 | Aprovação de comandos | Outro processo/usuário forja um pedido ou responde por você | Socket `~/.island/island.sock` 0600 em pasta 0700, `umask` restrito, checagem do dono do par (`getpeereid`), limite de 160 conexões, timeout ocioso |
-| Aprovação de comandos | Texto enorme/enganoso escondendo o que será executado | Texto sanitizado (controle/bidi), pedidos longos (`needsReview`) exigem abrir o terminal: sem "Permitir" de um clique sobre conteúdo não visto |
+| Aprovação de comandos | Texto enorme/enganoso escondendo o que será executado | Texto sanitizado (caracteres de controle/bidi viram ⍰ visível); o cartão rola, então comandos longos podem ser lidos até o fim e aprovados; só acima de 8000 caracteres (`needsReview`) o "Permitir" some e a decisão vai para o terminal |
 | Arquivos de config dos agentes | Corrupção ao instalar/remover hooks | Backup antes de editar, escrita atômica, remoção só das nossas entradas |
 | Logs | Vazar nomes de ferramentas e mensagens | `~/.island/app.log` 0600 |
 | Música | Código de terceiros | Adapter fixado por checksum (`ThirdParty/.../CHECKSUMS.txt`, verificado no `check.sh`), processo filho com ambiente limpo, só frameworks da Apple |

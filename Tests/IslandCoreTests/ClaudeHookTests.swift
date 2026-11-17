@@ -127,12 +127,18 @@ import Testing
         #expect(try #require(ClaudeHook.event(from: try parse(json)).permission).alwaysLabel == nil)
     }
 
-    @Test func longDetailsAreTruncated() throws {
+    @Test func longDetailsAreKeptForTheCardToScrollAndHugeOnesAreCut() throws {
+        // 5,000 characters fit what the card keeps: all of it can be read, so nothing is cut
         let long = String(repeating: "x", count: 5_000)
         let json = #"{"hook_event_name":"PermissionRequest","tool_name":"Bash","tool_input":{"command":"\#(long)"}}"#
-        let detail = try #require(ClaudeHook.event(from: try parse(json)).permission).detail
-        #expect(detail.count == 601)
-        #expect(detail.hasSuffix("…"))
+        let kept = try #require(ClaudeHook.event(from: try parse(json)).permission)
+        #expect(kept.detail.count == 5_000 && !kept.needsReview)
+        // past the limit it is cut, marked, and cannot be approved from the island
+        let huge = String(repeating: "x", count: 20_000)
+        let hugeJson = #"{"hook_event_name":"PermissionRequest","tool_name":"Bash","tool_input":{"command":"\#(huge)"}}"#
+        let cut = try #require(ClaudeHook.event(from: try parse(hugeJson)).permission)
+        #expect(cut.detail.count == PermissionPrompt.maxDetailCharacters + 1)
+        #expect(cut.detail.hasSuffix("…") && cut.needsReview)
     }
 
     @Test func mcpToolsGetReadableTitles() throws {
