@@ -124,6 +124,11 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         forget.target = self
         menu.addItem(forget)
 
+        let preview = NSMenuItem(title: L10n.t("Video preview"), action: #selector(toggleVideoPreview), keyEquivalent: "")
+        preview.target = self
+        preview.state = appearance.videoPreview ? .on : .off
+        menu.addItem(preview)
+
         let sounds = NSMenuItem(title: L10n.t("Sounds"), action: #selector(toggleSounds), keyEquivalent: "")
         sounds.target = self
         sounds.state = appearance.sounds ? .on : .off
@@ -260,6 +265,11 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     }
 
     @objc private func toggleSounds() { appearance.sounds.toggle() }
+
+    @objc private func toggleVideoPreview() {
+        if !appearance.videoPreview && !VideoPreview.requestPermission() { VideoPreview.openPrivacySettings() }
+        appearance.videoPreview.toggle()
+    }
 
     @objc private func toggleNotifications() { appearance.notify.toggle() }
 

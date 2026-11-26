@@ -281,7 +281,7 @@ struct IslandView: View {
                         RecentsTile(recents: recents, hover: store.rowHover, onResume: { store.resume($0) }, onForget: { store.forget($0) })
                     }
                     if presence.music || presence.focus {
-                        MediaRow(music: presence.music ? widgets.music : nil, focus: presence.focus ? widgets.focus : nil)
+                        MediaRow(music: presence.music ? widgets.music : nil, focus: presence.focus ? widgets.focus : nil, appearance: appearance)
                     }
                     if presence.calendar {
                         CalendarCard(calendar: widgets.calendar, onMirror: { url in

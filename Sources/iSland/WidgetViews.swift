@@ -18,7 +18,62 @@ struct Equalizer: View {
 /// is squarer (`compact`); alone it is one wide strip.
 struct MusicTile: View {
     @ObservedObject var music: NowPlayingManager
+    @ObservedObject var appearance: Appearance
     let compact: Bool
+    @StateObject private var preview = VideoPreview()
+
+    /// The live picture replaces the cover only once frames are really arriving.
+    private var showsVideo: Bool { appearance.videoPreview && preview.state == .running }
+    private var needsPermission: Bool { appearance.videoPreview && preview.state == .denied }
+
+    private func refreshPreview() {
+        guard appearance.videoPreview else { preview.stop(); return }
+        preview.start(owners: [music.state.parentBundleID, music.state.bundleID].compactMap { $0 }, title: music.state.title)
+    }
+
+    private func toggleVideo() {
+        if !appearance.videoPreview && !VideoPreview.requestPermission() { VideoPreview.openPrivacySettings() }
+        appearance.videoPreview.toggle()
+    }
+
+    /// The cover; a click swaps it for the live video (and back).
+    private func coverButton(size: CGFloat, radius: CGFloat) -> some View {
+        Button(action: toggleVideo) {
+            Cover(image: music.artwork, size: size, radius: radius)
+                .overlay(alignment: .bottomTrailing) {
+                    Image(systemName: "play.rectangle.fill")
+                        .font(.system(size: 8))
+                        .foregroundStyle(Color.white.opacity(0.9))
+                        .padding(3)
+                        .background(Circle().fill(Color.black.opacity(0.45)))
+                        .padding(2)
+                }
+        }
+        .buttonStyle(.plain)
+        .help(L10n.t("Show the video"))
+        .accessibilityLabel(L10n.t("Show the video"))
+    }
+
+    private var backToCover: some View {
+        Button(action: toggleVideo) {
+            Image(systemName: "photo")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(Color.white.opacity(0.85))
+                .frame(width: 22, height: 22)
+                .background(Circle().fill(Color.black.opacity(0.4)))
+        }
+        .buttonStyle(.plain)
+        .help(L10n.t("Show the cover"))
+        .accessibilityLabel(L10n.t("Show the cover"))
+    }
+
+    private var permissionHint: some View {
+        Button(action: VideoPreview.openPrivacySettings) {
+            Text(L10n.t("Allow Screen Recording to see the video"))
+                .font(.system(size: 10)).foregroundStyle(Color.white.opacity(0.85)).lineLimit(2).multilineTextAlignment(.leading)
+        }
+        .buttonStyle(.plain)
+    }
 
     private var tint: BentoTint {
         music.artworkTint.map { .custom(Color(nsColor: $0)) } ?? .music
@@ -31,21 +86,26 @@ struct MusicTile: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .bentoTile(tint)
+        .onAppear(perform: refreshPreview)
+        .onDisappear { preview.stop() }
+        .onChange(of: appearance.videoPreview) { _, _ in refreshPreview() }
+        .onChange(of: music.state.title) { _, _ in refreshPreview() }
     }
 
     private func square(_ state: NowPlayingState) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 10) {
-                Cover(image: music.artwork, size: 52, radius: 11)
+                if !showsVideo { coverButton(size: 52, radius: 11) }
                 VStack(alignment: .leading, spacing: 3) {
                     title(state, size: 13)
                     Text(subtitle(for: state))
                         .font(.system(size: 11))
                         .foregroundStyle(Color.white.opacity(0.82))
                         .lineLimit(1)
-                    playbackMark(state)
+                    if needsPermission { permissionHint } else { playbackMark(state) }
                 }
                 Spacer(minLength: 0)
+                if showsVideo { backToCover }
             }
             Spacer(minLength: 4)
             ProgressLine(state: state)
@@ -59,19 +119,43 @@ struct MusicTile: View {
             .padding(.top, 4)
         }
         .padding(10)
+        .background {
+            // The video is the tile's background, darkened top and bottom so the text and controls stay readable.
+            if showsVideo {
+                ZStack {
+                    LiveVideoView(preview: preview)
+                    LinearGradient(colors: [Color.black.opacity(0.65), Color.black.opacity(0.15), Color.black.opacity(0.7)],
+                                   startPoint: .top, endPoint: .bottom)
+                }
+            }
+        }
     }
 
     private func wide(_ state: NowPlayingState) -> some View {
         HStack(spacing: 12) {
-            Cover(image: music.artwork, size: 60, radius: 12)
+            if showsVideo {
+                // 16:9, like the picture it shows; a click goes back to the cover
+                Button(action: toggleVideo) {
+                    LiveVideoView(preview: preview)
+                        .frame(width: 104, height: 58)
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .help(L10n.t("Show the cover"))
+                .accessibilityLabel(L10n.t("Show the cover"))
+            } else {
+                coverButton(size: 60, radius: 12)
+            }
             VStack(alignment: .leading, spacing: 4) {
                 title(state, size: 14)
                 HStack(spacing: 6) {
-                    playbackMark(state)
-                    Text(subtitle(for: state))
-                        .font(.system(size: 11.5))
-                        .foregroundStyle(Color.white.opacity(0.82))
-                        .lineLimit(1)
+                    if needsPermission { permissionHint } else { playbackMark(state) }
+                    if !needsPermission {
+                        Text(subtitle(for: state))
+                            .font(.system(size: 11.5))
+                            .foregroundStyle(Color.white.opacity(0.82))
+                            .lineLimit(1)
+                    }
                 }
                 ProgressLine(state: state).padding(.top, 2)
             }

@@ -17,6 +17,8 @@ O iSland roda como o usuário, sem rede, e conversa com os agentes (Claude Code,
 | Histórico de projetos | Revelar o que você estava fazendo | `~/.island/recent.json` 0600 (pasta 0700): só nome da pasta, caminho, título do chat e hora; sem conteúdo de conversa; expira em 48 h; "Esquecer projetos recentes" apaga tudo |
 | Notificações | Texto na tela de bloqueio | Só nome do chat, tempo e tipo da pergunta; nunca o comando ou o pedido |
 
+| Prévia do vídeo (opcional) | Capturar a tela além do necessário | Desligada por padrão; precisa da permissão de Gravação de Tela do macOS; captura só a janela do player, em baixa resolução, só enquanto o bloco de música está visível; a imagem fica em memória, nunca é gravada nem enviada |
+
 ## Riscos residuais (honestos)
 - Build ad-hoc, sem Hardened Runtime nem notarização: o Gatekeeper avisará. **Antes de vender: Developer ID + notarização.**
 - Qualquer processo do **mesmo usuário** consegue falar com o socket (inevitável em um socket local; mitigado pelo item de aprovações acima).

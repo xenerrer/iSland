@@ -352,6 +352,7 @@ struct FavoriteChip: View {
 struct MediaRow: View {
     let music: NowPlayingManager?
     let focus: FocusTimer?
+    let appearance: Appearance
 
     private var height: CGFloat {
         var presence = WidgetPresence()
@@ -362,7 +363,7 @@ struct MediaRow: View {
 
     var body: some View {
         HStack(spacing: IslandLayout.tileGap) {
-            if let music { MusicTile(music: music, compact: focus != nil) }
+            if let music { MusicTile(music: music, appearance: appearance, compact: focus != nil) }
             if let focus { FocusTile(focus: focus, compact: music != nil) }
         }
         .frame(height: height)

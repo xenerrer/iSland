@@ -38,6 +38,10 @@ final class Appearance: ObservableObject {
     @Published var notify: Bool {
         didSet { UserDefaults.standard.set(notify, forKey: "notify") }
     }
+    /// The music tile shows the playing video (a live capture of its window) instead of the cover. Off until the user asks.
+    @Published var videoPreview: Bool {
+        didSet { UserDefaults.standard.set(videoPreview, forKey: "videoPreview") }
+    }
     @Published var sounds: Bool {
         didSet { UserDefaults.standard.set(sounds, forKey: "sounds") }
     }
@@ -82,6 +86,7 @@ final class Appearance: ObservableObject {
         // `iSland -style clear` works too: command-line arguments land in UserDefaults.
         style = UserDefaults.standard.string(forKey: Self.styleKey).flatMap(IslandStyle.init(rawValue:)) ?? .glass
         sounds = UserDefaults.standard.bool(forKey: "sounds")
+        videoPreview = UserDefaults.standard.bool(forKey: "videoPreview")
         notify = UserDefaults.standard.object(forKey: "notify") as? Bool ?? true
         hideFromCapture = UserDefaults.standard.bool(forKey: "hideFromCapture")
         showMusic = UserDefaults.standard.object(forKey: "showMusic") as? Bool ?? true
