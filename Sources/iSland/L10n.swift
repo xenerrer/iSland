@@ -207,6 +207,7 @@ enum L10n {
         "Animation": "Animação",
         "Displays": "Telas",
         "Favorites": "Favoritos",
+        "Right-click a chat to pin it here": "Clique com o botão direito numa conversa para fixar aqui",
         "Move left": "Mover para a esquerda",
         "Move right": "Mover para a direita",
         "Remove from favorites": "Tirar dos favoritos",

@@ -82,7 +82,7 @@ struct IslandLayout: Equatable {
     static let favoriteMaxRows = 2
     /// With many sessions running the tile keeps to one row (the rest scrolls), so the island stays a sensible height.
     static func favoriteRows(sessions: Int) -> Int { sessions >= 4 ? 1 : favoriteMaxRows }
-    /// `cells` counts the pinned projects plus the "+" chip, so the tile always has at least one row.
+    /// `cells` is the number of pinned projects (at least 1: an empty tile still has its one row, with a hint).
     static func favoritesTileHeight(cells: Int, maxRows: Int = favoriteMaxRows) -> CGFloat? {
         guard cells > 0 else { return nil }
         let rows = min(maxRows, (cells + favoriteColumns - 1) / favoriteColumns)
@@ -279,7 +279,7 @@ struct IslandLayout: Equatable {
         if hidden { shown.musicPlaying = false; shown.focusRunning = false }
         return size(open: store.isOpen(on: display), sessions: store.sessions.count, request: store.requests.first?.prompt, widgets: shown,
                     closedStatus: store.closedStatus != nil && !hidden, mode: store.mode, recents: store.visibleRecents.count,
-                    favoriteCells: store.favorites.items.count + 1, toast: store.toast != nil && !hidden)
+                    favoriteCells: max(1, store.favorites.items.count), toast: store.toast != nil && !hidden)
     }
 }
 

@@ -255,16 +255,34 @@ struct FavoritesTile: View {
         Array(repeating: GridItem(.flexible(), spacing: IslandLayout.favoriteChipGap), count: IslandLayout.favoriteColumns)
     }
 
+    /// The pointer is somewhere on the tile: only then does the "+" show itself, so nothing invites a click that you did not come for.
+    private var tileHovered: Bool { hover.sessionId == "favtile" }
+
     var body: some View {
-        let cells = favorites.count + 1
+        let cells = max(1, favorites.count)
         VStack(spacing: 0) {
             HStack(spacing: 6) {
-                Image(systemName: "star.fill").font(.system(size: 8.5)).foregroundStyle(Color.white.opacity(0.55))
-                Text(L10n.t("Favorites")).font(.system(size: 11, weight: .semibold)).foregroundStyle(Color.white.opacity(0.75))
+                Text(L10n.t("Favorites")).font(.system(size: 11, weight: .semibold)).foregroundStyle(Color.white.opacity(0.6))
                 Spacer(minLength: 0)
+                Button(action: onAdd) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Color.white.opacity(tileHovered ? 0.8 : 0))
+                        .frame(width: 24, height: 18)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help(L10n.t("Pin a project"))
+                .accessibilityLabel(L10n.t("Pin a project"))
             }
             .frame(height: IslandLayout.favoritesHeaderHeight)
-            if cells > IslandLayout.favoriteColumns * maxRows {
+            if favorites.isEmpty {
+                Text(L10n.t("Right-click a chat to pin it here"))
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color.white.opacity(0.5))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(height: IslandLayout.favoriteChipHeight)
+            } else if cells > IslandLayout.favoriteColumns * maxRows {
                 ScrollView(.vertical, showsIndicators: false) { grid }
             } else {
                 grid
@@ -276,6 +294,7 @@ struct FavoritesTile: View {
         .frame(maxWidth: .infinity)
         .frame(height: IslandLayout.favoritesTileHeight(cells: cells, maxRows: maxRows) ?? 0, alignment: .top)
         .bentoTile(.favorites)
+        .background(HoverTracker { [hover] inside in hover.set("favtile", inside) })
     }
 
     private var grid: some View {
@@ -289,19 +308,6 @@ struct FavoritesTile: View {
                         Button(L10n.t("Remove from favorites")) { onRemove(project) }
                     }
             }
-            Button(action: onAdd) {
-                HStack(spacing: 5) {
-                    Image(systemName: "plus").font(.system(size: 11, weight: .bold))
-                    if favorites.isEmpty { Text(L10n.t("Pin a project")).font(.system(size: 12, weight: .medium)).lineLimit(1) }
-                }
-                .foregroundStyle(Color.white.opacity(0.9))
-                .frame(maxWidth: .infinity)
-                .frame(height: IslandLayout.favoriteChipHeight)
-                .background(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.white.opacity(0.18), style: StrokeStyle(lineWidth: 1, dash: [3, 3])))
-            }
-            .buttonStyle(.plain)
-            .help(L10n.t("Pin a project"))
-            .accessibilityLabel(L10n.t("Pin a project"))
         }
     }
 }

@@ -35,7 +35,7 @@ struct IslandView: View {
     private var contentWidth: CGFloat {
         layout.size(open: true, sessions: store.sessions.count, request: store.requests.first?.prompt, widgets: presence,
                     closedStatus: false, mode: store.mode, recents: store.visibleRecents.count,
-                    favoriteCells: store.favorites.items.count + 1).width
+                    favoriteCells: max(1, store.favorites.items.count)).width
     }
     /// Glass only when open: the closed pill stays black so it fuses with the hardware notch.
     private var usesGlass: Bool { open && appearance.style != .solid && !appearance.reduceTransparency }
@@ -268,7 +268,7 @@ struct IslandView: View {
                 } else {
                     let recents = store.visibleRecents
                     if IslandLayout.showsPlaceholder(sessions: store.sessions.count, request: false, widgets: presence, recents: recents.count,
-                                                     favoriteCells: store.favorites.items.count + 1) {
+                                                     favoriteCells: max(1, store.favorites.items.count)) {
                         PlaceholderTile()
                     }
                     if !store.sessions.isEmpty { AgentsTile(store: store) }
