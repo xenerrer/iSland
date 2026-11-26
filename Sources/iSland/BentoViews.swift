@@ -18,13 +18,14 @@ enum BentoTint {
         case .calendar: Color(red: 0.28, green: 0.56, blue: 1.00)
         case .approval: Color(red: 1.00, green: 0.45, blue: 0.28)
         case .neutral: Color.white
-        case .favorites: Color(red: 1.0, green: 0.78, blue: 0.28)
+        case .favorites: Color.white
         case .custom(let color): color
         }
     }
 
     var opacity: Double {
         if case .neutral = self { return 0.07 }
+        if case .favorites = self { return 0.05 }
         return 0.26
     }
 }
@@ -258,8 +259,8 @@ struct FavoritesTile: View {
         let cells = favorites.count + 1
         VStack(spacing: 0) {
             HStack(spacing: 6) {
-                Image(systemName: "star.fill").font(.system(size: 10)).foregroundStyle(BentoTint.favorites.color)
-                Text(L10n.t("Favorites")).font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.white.opacity(0.95))
+                Image(systemName: "star.fill").font(.system(size: 8.5)).foregroundStyle(Color.white.opacity(0.55))
+                Text(L10n.t("Favorites")).font(.system(size: 11, weight: .semibold)).foregroundStyle(Color.white.opacity(0.75))
                 Spacer(minLength: 0)
             }
             .frame(height: IslandLayout.favoritesHeaderHeight)
@@ -296,7 +297,7 @@ struct FavoritesTile: View {
                 .foregroundStyle(Color.white.opacity(0.9))
                 .frame(maxWidth: .infinity)
                 .frame(height: IslandLayout.favoriteChipHeight)
-                .background(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.white.opacity(0.25), style: StrokeStyle(lineWidth: 1, dash: [3, 3])))
+                .background(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.white.opacity(0.18), style: StrokeStyle(lineWidth: 1, dash: [3, 3])))
             }
             .buttonStyle(.plain)
             .help(L10n.t("Pin a project"))
@@ -317,11 +318,11 @@ struct FavoriteChip: View {
         Button(action: onOpen) {
             HStack(spacing: 6) {
                 Image(systemName: project.chatId == nil ? "folder.fill" : "bubble.left.fill")
-                    .font(.system(size: 10))
-                    .foregroundStyle(Color.white.opacity(0.75))
+                    .font(.system(size: 9.5))
+                    .foregroundStyle(Color.white.opacity(0.6))
                 Text(project.title ?? project.project)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Color.white)
+                    .font(.system(size: 11.5, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(0.9))
                     .lineLimit(1)
                 Spacer(minLength: 0)
                 if isLive { Circle().fill(Color(red: 0.30, green: 0.85, blue: 0.45)).frame(width: 6, height: 6) }
@@ -329,7 +330,7 @@ struct FavoriteChip: View {
             .padding(.horizontal, 9)
             .frame(maxWidth: .infinity)
             .frame(height: IslandLayout.favoriteChipHeight)
-            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.white.opacity(hovered ? 0.20 : 0.11)))
+            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.white.opacity(hovered ? 0.16 : 0.07)))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

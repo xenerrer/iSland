@@ -75,9 +75,9 @@ struct IslandLayout: Equatable {
     static let calendarTileHeight: CGFloat = 64
     static let placeholderTileHeight: CGFloat = 44
     /// Favorites: a header and a grid of three chips per row; past two rows the grid scrolls.
-    static let favoritesHeaderHeight: CGFloat = 22
-    static let favoriteChipHeight: CGFloat = 32
-    static let favoriteChipGap: CGFloat = 6
+    static let favoritesHeaderHeight: CGFloat = 18
+    static let favoriteChipHeight: CGFloat = 28
+    static let favoriteChipGap: CGFloat = 5
     static let favoriteColumns = 3
     static let favoriteMaxRows = 2
     /// With many sessions running the tile keeps to one row (the rest scrolls), so the island stays a sensible height.
