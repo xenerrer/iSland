@@ -606,7 +606,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if CommandLine.arguments.contains("--favs") { // dev flag: pinned projects
             let now = Date()
-            store.loadFavorites(FavoriteList(items: ["Dra Patrícia", "ConexãoBIM", "Professional Identity", "Human Image", "Canal YouTube"].enumerated().map { i, name in
+            store.loadFavorites(FavoriteList(items: ["Clínica", "Loja online", "Análise de perfil", "Gerador de imagens", "Canal de vídeos"].enumerated().map { i, name in
                 RecentProject(agent: "claude", project: name, cwd: "/demo/\(name)", title: name, chatId: "local_fav-\(i)", lastActive: now)
             }))
         }

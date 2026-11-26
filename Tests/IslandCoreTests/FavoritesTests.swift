@@ -9,11 +9,11 @@ import Testing
 
     @Test func addKeepsOrderAndNeverDuplicates() {
         var list = FavoriteList()
-        list.add(fav("a", chat: "local_1", title: "Dra Patricia"))
+        list.add(fav("a", chat: "local_1", title: "Clínica"))
         list.add(fav("b", chat: "local_2"))
-        list.add(fav("a", chat: "local_1", title: "Dra Patricia 2"))
+        list.add(fav("a", chat: "local_1", title: "Clínica 2"))
         #expect(list.items.map(\.key) == ["local_1", "local_2"])
-        #expect(list.items[0].title == "Dra Patricia 2")
+        #expect(list.items[0].title == "Clínica 2")
     }
 
     @Test func aFolderPinBecomesTheChatOnceItsIdIsKnown() {
@@ -41,9 +41,9 @@ import Testing
         defer { try? FileManager.default.removeItem(at: folder) }
         let url = folder.appendingPathComponent("favorites.json")
         var list = FavoriteList()
-        list.add(fav("a", chat: "local_1", title: "ConexãoBIM"))
+        list.add(fav("a", chat: "local_1", title: "Loja online"))
         list.save(to: url)
-        #expect(FavoriteList.load(from: url).items.first?.title == "ConexãoBIM")
+        #expect(FavoriteList.load(from: url).items.first?.title == "Loja online")
         #expect((try FileManager.default.attributesOfItem(atPath: url.path)[.posixPermissions] as? NSNumber)?.intValue == 0o600)
         #expect(FavoriteList.load(from: folder.appendingPathComponent("none.json")).items.isEmpty)
     }
