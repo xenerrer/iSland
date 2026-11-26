@@ -148,6 +148,20 @@ public final class DesktopChatIndex: @unchecked Sendable {
         return found
     }
 
+    /// The chats of the Claude app you touched most recently (not archived), newest first, for choosing a favorite. Reads
+    /// the whole record of only the newest few files.
+    public func recentChats(limit: Int = 12) -> [(chat: DesktopChat, folder: String?, modified: Date)] {
+        lock.lock()
+        defer { lock.unlock() }
+        var found: [(chat: DesktopChat, folder: String?, modified: Date)] = []
+        for (url, modified) in chatFiles().sorted(by: { $0.modified > $1.modified }).prefix(limit * 2) {
+            guard let chat = Self.parseRecord(try? Data(contentsOf: url)), !chat.isArchived else { continue }
+            found.append((chat, loadHead(of: url, modified: modified).folder, modified))
+            if found.count == limit { break }
+        }
+        return found
+    }
+
     /// The folders you worked in most recently, newest first, for "new chat here". Folders that no longer exist are left out.
     public func recentFolders(limit: Int = 6) -> [String] {
         lock.lock()

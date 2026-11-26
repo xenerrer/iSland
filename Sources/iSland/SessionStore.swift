@@ -500,14 +500,47 @@ final class SessionStore: ObservableObject {
 
     func loadHistory(_ loaded: RecentHistory) { history = loaded }
 
+    // MARK: - Favorites
+
+    /// Projects pinned by the user: they stay until removed.
+    @Published private(set) var favorites = FavoriteList()
+
+    func loadFavorites(_ loaded: FavoriteList) { favorites = loaded }
+
+    func addFavorite(_ project: RecentProject) { var next = favorites; next.add(project); favorites = next }
+    func removeFavorite(_ project: RecentProject) { var next = favorites; next.remove(key: project.key); favorites = next }
+    func moveFavorite(_ project: RecentProject, by step: Int) { var next = favorites; next.move(key: project.key, by: step); favorites = next }
+
+    func project(for session: AgentSession) -> RecentProject {
+        RecentProject(agent: session.agent, project: session.project, cwd: session.cwd, title: session.title,
+                      chatId: session.chatId, lastActive: session.updated)
+    }
+
+    func isFavorite(_ session: AgentSession) -> Bool { favorites.contains(key: Self.historyKey(for: session)) }
+
+    func toggleFavorite(_ session: AgentSession) {
+        let item = project(for: session)
+        if favorites.contains(key: item.key) { removeFavorite(item) } else { addFavorite(item) }
+    }
+
+    /// A pinned chat follows the name the chat has now.
+    func refreshFavoriteTitles() {
+        var next = favorites
+        for session in sessions.values { next.refreshTitle(key: Self.historyKey(for: session), title: session.title) }
+        if next != favorites { favorites = next }
+    }
+
     /// The projects to offer, when the live list leaves room: not live now, newest first, and none while a question waits.
     var visibleRecents: [RecentProject] {
         guard requests.isEmpty else { return [] }
+        // Once projects are pinned, the suggestions only show while nothing is running.
+        if !favorites.items.isEmpty && !sessions.isEmpty { return [] }
         // Room is shared with the live sessions: the more of them, the fewer suggestions (none from four on).
         let limit = min(IslandLayout.maxRecents, max(0, IslandLayout.recentsBudget - sessions.count))
         let liveKeys = Set(sessions.values.map(Self.historyKey(for:)))
         let liveFolders = Set(sessions.values.compactMap { s in s.cwd.map { "\(s.agent)|\($0)" } })
-        return history.resumable(liveKeys: liveKeys, liveFolders: liveFolders, limit: limit)
+        let pinned = Set(favorites.items.map(\.key))
+        return history.resumable(liveKeys: liveKeys.union(pinned), liveFolders: liveFolders, limit: limit)
     }
 
     func forget(_ project: RecentProject) { history.remove(key: project.key) }

@@ -70,6 +70,15 @@ import Testing
         #expect(tall == height([agents(9)]))
     }
 
+    @Test func theFavoritesTileGrowsToTwoRowsThenScrolls() {
+        #expect(IslandLayout.favoritesTileHeight(cells: 0) == nil)
+        let one = IslandLayout.favoritesTileHeight(cells: 1)!, three = IslandLayout.favoritesTileHeight(cells: 3)!
+        let four = IslandLayout.favoritesTileHeight(cells: 4)!, many = IslandLayout.favoritesTileHeight(cells: 20)!
+        #expect(one == three)
+        #expect(four - three == IslandLayout.favoriteChipHeight + IslandLayout.favoriteChipGap)
+        #expect(many == IslandLayout.favoritesTileHeight(cells: 6)!) // past two rows it scrolls, so it stops growing
+    }
+
     @Test func theMusicAndPomodoroTilesShareARowOrStandAloneWide() {
         #expect(IslandLayout.mediaRowHeight(widgets: WidgetPresence()) == nil)
         #expect(IslandLayout.mediaRowHeight(widgets: WidgetPresence(music: true)) == IslandLayout.mediaSingleHeight)
@@ -80,9 +89,10 @@ import Testing
     @Test func theFullestIslandStillFitsTheBudget() {
         let everything = WidgetPresence(music: true, calendar: true, musicPlaying: true, focus: true, focusRunning: true)
         for sessions in 0...12 {
-            let recents = min(IslandLayout.maxRecents, max(0, IslandLayout.recentsBudget - sessions)) // what SessionStore offers
-            let size = layout.size(open: true, sessions: sessions, request: nil, widgets: everything, closedStatus: true, recents: recents)
-            #expect(size.height <= 500, "\(sessions) sessions, \(recents) recents: \(size.height)")
+            let recents = sessions == 0 ? IslandLayout.maxRecents : 0 // what SessionStore offers once something is pinned
+            let size = layout.size(open: true, sessions: sessions, request: nil, widgets: everything, closedStatus: true, recents: recents,
+                                   favoriteCells: 7) // six pinned and the "+": the tile at its tallest
+            #expect(size.height <= 560, "\(sessions) sessions, \(recents) recents: \(size.height)")
             #expect(size.height <= IslandLayout.panelHeight)
         }
         // the approval tile with the longest command

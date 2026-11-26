@@ -16,7 +16,7 @@ CONFIG="${1:?usage: bundle.sh <debug|release> <output-dir>}"
 OUT="${2:?usage: bundle.sh <debug|release> <output-dir>}"
 APP_NAME="iSland"
 BUNDLE_ID="${BUNDLE_ID:-com.lucasschoenherr.island}"
-VERSION="${VERSION:-0.4.0}"
+VERSION="${VERSION:-$(tr -d '[:space:]' < VERSION)}" # the single source of the version: the VERSION file
 SIGN_IDENTITY="${SIGN_IDENTITY:--}"
 ADAPTER="ThirdParty/mediaremote-adapter"
 

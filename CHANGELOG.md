@@ -2,6 +2,8 @@
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow SemVer.
 
 ## [Unreleased]
+
+## [0.5.0]
 ### Added
 - Bento tiles: the open island redesigned as a grid of rounded tiles; approval as one big tile; long commands scroll and can be approved.
 - Multi-display support: island on the main display by default; all displays or one specific display from Settings → Displays.

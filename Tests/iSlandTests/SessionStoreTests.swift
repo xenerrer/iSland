@@ -786,3 +786,32 @@ import Testing
         #expect(store.visibleRecents.isEmpty)
     }
 }
+
+@MainActor
+@Suite("Favorites in the store") struct FavoritesStoreTests {
+    @Test func pinningASessionAndHidingItFromSuggestions() {
+        let store = SessionStore()
+        store.apply(AgentEvent(agent: "claude", sessionId: "s", cwd: "/work/alpha", event: "UserPromptSubmit", tool: nil, message: nil, timestamp: Date()))
+        let session = store.sessions["s"]!
+        #expect(!store.isFavorite(session))
+        store.toggleFavorite(session)
+        #expect(store.isFavorite(session) && store.favorites.items.count == 1)
+        store.toggleFavorite(session)
+        #expect(store.favorites.items.isEmpty)
+    }
+
+    @Test func suggestionsStepAsideOnceSomethingIsPinnedAndRunning() {
+        let store = SessionStore()
+        let old = RecentProject(agent: "claude", project: "old", cwd: "/work/old", title: nil, chatId: nil, lastActive: Date())
+        store.loadHistory(RecentHistory(items: [old]))
+        #expect(store.visibleRecents.count == 1)
+        store.loadFavorites(FavoriteList(items: [RecentProject(agent: "claude", project: "pin", cwd: "/work/pin", title: nil, chatId: nil, lastActive: Date())]))
+        #expect(store.visibleRecents.count == 1) // nothing running: still offered
+        store.apply(AgentEvent(agent: "claude", sessionId: "s", cwd: "/work/alpha", event: "UserPromptSubmit", tool: nil, message: nil, timestamp: Date()))
+        #expect(store.visibleRecents.isEmpty)
+        // and what is pinned is not suggested again
+        store.loadFavorites(FavoriteList(items: [old]))
+        store.dismiss("s")
+        #expect(store.visibleRecents.isEmpty)
+    }
+}

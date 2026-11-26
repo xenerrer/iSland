@@ -9,7 +9,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 APP_NAME="iSland"
-VERSION="${VERSION:-0.4.0}"
+VERSION="${VERSION:-$(tr -d '[:space:]' < VERSION)}" # the single source of the version: the VERSION file
 export VERSION
 
 DIST="dist"

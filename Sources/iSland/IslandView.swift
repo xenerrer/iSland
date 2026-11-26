@@ -12,6 +12,8 @@ struct IslandView: View {
     var display: CGDirectDisplayID = CGMainDisplayID()
     /// The gear in the header: opens the settings menu.
     var onSettings: () -> Void = {}
+    /// The "+" in the favorites tile: a menu of projects to pin.
+    var onAddFavorite: () -> Void = {}
 
     var body: some View {
         VStack(spacing: 0) {
@@ -32,7 +34,8 @@ struct IslandView: View {
     /// shrinks around it (the shape clips it), so nothing in it reflows or travels sideways during the animation.
     private var contentWidth: CGFloat {
         layout.size(open: true, sessions: store.sessions.count, request: store.requests.first?.prompt, widgets: presence,
-                    closedStatus: false, mode: store.mode, recents: store.visibleRecents.count).width
+                    closedStatus: false, mode: store.mode, recents: store.visibleRecents.count,
+                    favoriteCells: store.favorites.items.count + 1).width
     }
     /// Glass only when open: the closed pill stays black so it fuses with the hardware notch.
     private var usesGlass: Bool { open && appearance.style != .solid && !appearance.reduceTransparency }
@@ -264,10 +267,16 @@ struct IslandView: View {
                     if !store.sessions.isEmpty { AgentsRailTile(store: store) }
                 } else {
                     let recents = store.visibleRecents
-                    if IslandLayout.showsPlaceholder(sessions: store.sessions.count, request: false, widgets: presence, recents: recents.count) {
+                    if IslandLayout.showsPlaceholder(sessions: store.sessions.count, request: false, widgets: presence, recents: recents.count,
+                                                     favoriteCells: store.favorites.items.count + 1) {
                         PlaceholderTile()
                     }
                     if !store.sessions.isEmpty { AgentsTile(store: store) }
+                    FavoritesTile(favorites: store.favorites.items, maxRows: IslandLayout.favoriteRows(sessions: store.sessions.count),
+                                  live: Set(store.sessions.values.map(SessionStore.historyKey(for:))),
+                                  hover: store.rowHover,
+                                  onOpen: { store.resume($0) }, onAdd: onAddFavorite,
+                                  onRemove: { store.removeFavorite($0) }, onMove: { store.moveFavorite($0, by: $1) })
                     if !recents.isEmpty {
                         RecentsTile(recents: recents, hover: store.rowHover, onResume: { store.resume($0) }, onForget: { store.forget($0) })
                     }

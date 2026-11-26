@@ -74,6 +74,20 @@ struct IslandLayout: Equatable {
     static let mediaSingleHeight: CGFloat = 84
     static let calendarTileHeight: CGFloat = 64
     static let placeholderTileHeight: CGFloat = 44
+    /// Favorites: a header and a grid of three chips per row; past two rows the grid scrolls.
+    static let favoritesHeaderHeight: CGFloat = 22
+    static let favoriteChipHeight: CGFloat = 32
+    static let favoriteChipGap: CGFloat = 6
+    static let favoriteColumns = 3
+    static let favoriteMaxRows = 2
+    /// With many sessions running the tile keeps to one row (the rest scrolls), so the island stays a sensible height.
+    static func favoriteRows(sessions: Int) -> Int { sessions >= 4 ? 1 : favoriteMaxRows }
+    /// `cells` counts the pinned projects plus the "+" chip, so the tile always has at least one row.
+    static func favoritesTileHeight(cells: Int, maxRows: Int = favoriteMaxRows) -> CGFloat? {
+        guard cells > 0 else { return nil }
+        let rows = min(maxRows, (cells + favoriteColumns - 1) / favoriteColumns)
+        return agentsTileTop + favoritesHeaderHeight + CGFloat(rows) * favoriteChipHeight + CGFloat(rows - 1) * favoriteChipGap + agentsTileBottom
+    }
     /// The "finished" toast under the collapsed notch.
     static let toastWidth: CGFloat = 330
     static let toastHeight: CGFloat = 48
@@ -170,8 +184,8 @@ struct IslandLayout: Equatable {
     // MARK: Island
 
     /// "No active agents" is only said when there is nothing else to show.
-    static func showsPlaceholder(sessions: Int, request: Bool, widgets: WidgetPresence, recents: Int = 0) -> Bool {
-        sessions == 0 && !request && !widgets.any && recents == 0
+    static func showsPlaceholder(sessions: Int, request: Bool, widgets: WidgetPresence, recents: Int = 0, favoriteCells: Int = 0) -> Bool {
+        sessions == 0 && !request && !widgets.any && recents == 0 && favoriteCells == 0
     }
 
     /// Projects that were active before a restart: a small heading, then a row each, in a quiet tile.
@@ -208,15 +222,16 @@ struct IslandLayout: Equatable {
 
     /// The tiles of the open island, top to bottom. A waiting question takes the grid: its tile, and under it only a slim
     /// rail of the agents; the music, pomodoro and calendar tiles give way.
-    static func tileHeights(sessions: Int, request: PermissionPrompt?, widgets: WidgetPresence, recents: Int) -> [CGFloat] {
+    static func tileHeights(sessions: Int, request: PermissionPrompt?, widgets: WidgetPresence, recents: Int, favoriteCells: Int = 0) -> [CGFloat] {
         var tiles: [CGFloat] = []
         if let request {
             tiles.append(cardHeight(for: request))
             if sessions > 0 { tiles.append(railTileHeight) }
             return tiles
         }
-        if showsPlaceholder(sessions: sessions, request: false, widgets: widgets, recents: recents) { tiles.append(placeholderTileHeight) }
+        if showsPlaceholder(sessions: sessions, request: false, widgets: widgets, recents: recents, favoriteCells: favoriteCells) { tiles.append(placeholderTileHeight) }
         if let agents = agentsTileHeight(sessions: sessions) { tiles.append(agents) }
+        if let favorites = favoritesTileHeight(cells: favoriteCells, maxRows: favoriteRows(sessions: sessions)) { tiles.append(favorites) }
         if let recent = recentsTileHeight(count: recents) { tiles.append(recent) }
         if let media = mediaRowHeight(widgets: widgets) { tiles.append(media) }
         if widgets.calendar { tiles.append(calendarTileHeight) }
@@ -226,7 +241,7 @@ struct IslandLayout: Equatable {
     /// The open island is a grid of tiles with equal gaps: the agents, what you were working on, music and pomodoro, the
     /// calendar. A waiting question takes the grid (see `tileHeights`).
     func size(open: Bool, sessions: Int, request: PermissionPrompt?, widgets: WidgetPresence, closedStatus: Bool,
-              mode: IslandMode = .list, recents: Int = 0, toast: Bool = false) -> CGSize {
+              mode: IslandMode = .list, recents: Int = 0, favoriteCells: Int = 0, toast: Bool = false) -> CGSize {
         guard open else {
             let items = Self.pillItems(sessions: sessions, status: closedStatus, widgets: widgets)
             let width = notch.width + (items.isEmpty ? 0 : Self.pillWing(items) * 2)
@@ -251,7 +266,7 @@ struct IslandLayout: Equatable {
                 return CGSize(width: Self.newChatWidth, height: notch.height + Self.topGap + content + Self.bottomPadding)
             }
         }
-        let tiles = Self.tileHeights(sessions: sessions, request: request, widgets: widgets, recents: recents)
+        let tiles = Self.tileHeights(sessions: sessions, request: request, widgets: widgets, recents: recents, favoriteCells: favoriteCells)
         let content = tiles.reduce(0, +) + CGFloat(max(0, tiles.count - 1)) * Self.tileGap
         return CGSize(width: Self.openWidth, height: notch.height + Self.bentoTop + content + Self.bentoBottom)
     }
@@ -264,7 +279,7 @@ struct IslandLayout: Equatable {
         if hidden { shown.musicPlaying = false; shown.focusRunning = false }
         return size(open: store.isOpen(on: display), sessions: store.sessions.count, request: store.requests.first?.prompt, widgets: shown,
                     closedStatus: store.closedStatus != nil && !hidden, mode: store.mode, recents: store.visibleRecents.count,
-                    toast: store.toast != nil && !hidden)
+                    favoriteCells: store.favorites.items.count + 1, toast: store.toast != nil && !hidden)
     }
 }
 

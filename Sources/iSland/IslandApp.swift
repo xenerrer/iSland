@@ -301,10 +301,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         var loaded = RecentHistory.load(from: IslandPaths.recentURL)
         loaded.prune()
         store.loadHistory(loaded)
+        store.loadFavorites(FavoriteList.load(from: IslandPaths.favoritesURL))
+        store.$favorites
+            .dropFirst()
+            .removeDuplicates()
+            .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
+            .sink { $0.save(to: IslandPaths.favoritesURL) }
+            .store(in: &subscriptions)
         store.$sessions
             .dropFirst()
             .debounce(for: .seconds(3), scheduler: DispatchQueue.main)
-            .sink { [store] _ in store.recordHistory() }
+            .sink { [store] _ in store.recordHistory(); store.refreshFavoriteTitles() }
             .store(in: &subscriptions)
         historySaver = store.$history
             .dropFirst()
@@ -375,7 +382,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func installContent(in panel: NSPanel, layout: IslandLayout, display: CGDirectDisplayID) {
         let host = IslandHostingView(rootView: IslandView(
             store: store, appearance: appearance, widgets: widgets, mirror: mirror, layout: layout, display: display,
-            onSettings: { [weak self] in self?.showSettings() }))
+            onSettings: { [weak self] in self?.showSettings() },
+            onAddFavorite: { [weak self] in self?.showFavoritePicker() }))
         host.sizingOptions = [] // the panel has a fixed frame: no re-measuring of the root view on every update
         panel.contentView = host
     }
@@ -505,6 +513,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showGuide() { guideWindow.show(model: guideModel) }
 
+    private func showFavoritePicker() {
+        FavoritePicker.show(store: store)
+        islands.forEach { $0.hover?.refreshInteractivity() }
+    }
+
     /// The gear in the island: the settings menu, with the island held open while it is up.
     private func showSettings() {
         store.menuOpen = true
@@ -517,6 +530,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !islands.isEmpty {
             store.recordHistory()
             store.history.save(to: IslandPaths.recentURL)
+            store.favorites.save(to: IslandPaths.favoritesURL)
         }
         fullscreen.stop()
         mirror.stop()
@@ -589,6 +603,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 RecentProject(agent: "claude", project: "landing", cwd: "/demo/landing", title: nil, chatId: nil,
                               lastActive: now.addingTimeInterval(-26 * 3600)),
             ]))
+        }
+        if CommandLine.arguments.contains("--favs") { // dev flag: pinned projects
+            let now = Date()
+            store.loadFavorites(FavoriteList(items: ["Dra Patrícia", "ConexãoBIM", "Professional Identity", "Human Image", "Canal YouTube"].enumerated().map { i, name in
+                RecentProject(agent: "claude", project: name, cwd: "/demo/\(name)", title: name, chatId: "local_fav-\(i)", lastActive: now)
+            }))
         }
         if CommandLine.arguments.contains("--toast") { // dev flag: the finished toast
             store.showToast(.init(sessionId: "a", title: "Ajustar o visual do notch", seconds: 192), for: 3600)

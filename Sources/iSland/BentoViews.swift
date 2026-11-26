@@ -7,7 +7,7 @@ import SwiftUI
 
 /// The colour of a tile. The fill is a wash of it over the glass; `neutral` is the quiet one.
 enum BentoTint {
-    case agents, music, focus, calendar, approval, neutral
+    case agents, music, focus, calendar, approval, neutral, favorites
     case custom(Color)
 
     var color: Color {
@@ -18,6 +18,7 @@ enum BentoTint {
         case .calendar: Color(red: 0.28, green: 0.56, blue: 1.00)
         case .approval: Color(red: 1.00, green: 0.45, blue: 0.28)
         case .neutral: Color.white
+        case .favorites: Color(red: 1.0, green: 0.78, blue: 0.28)
         case .custom(let color): color
         }
     }
@@ -172,6 +173,11 @@ struct AgentsTile: View {
             ForEach(sessions) { session in
                 SessionRow(session: session, isCurrent: store.currentSessionId == session.id, hover: store.rowHover,
                            onFocus: { store.focus(session.id) }, onDismiss: { store.dismiss(session.id) })
+                    .contextMenu {
+                        Button(store.isFavorite(session) ? L10n.t("Remove from favorites") : L10n.t("Pin to favorites")) {
+                            store.toggleFavorite(session)
+                        }
+                    }
             }
         }
     }
@@ -226,6 +232,110 @@ struct RecentsTile: View {
         .frame(maxWidth: .infinity)
         .frame(height: IslandLayout.recentsTileHeight(count: recents.count) ?? 0, alignment: .top)
         .bentoTile(.neutral)
+    }
+}
+
+// MARK: - Favorites
+
+/// Pinned projects: one click goes to the chat (or opens a new chat in the folder). "+" pins another; right-click a chip to
+/// move or remove it.
+struct FavoritesTile: View {
+    let favorites: [RecentProject]
+    let maxRows: Int
+    /// Keys of the projects with a live session right now.
+    let live: Set<String>
+    @ObservedObject var hover: RowHover
+    let onOpen: (RecentProject) -> Void
+    let onAdd: () -> Void
+    let onRemove: (RecentProject) -> Void
+    let onMove: (RecentProject, Int) -> Void
+
+    private var columns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: IslandLayout.favoriteChipGap), count: IslandLayout.favoriteColumns)
+    }
+
+    var body: some View {
+        let cells = favorites.count + 1
+        VStack(spacing: 0) {
+            HStack(spacing: 6) {
+                Image(systemName: "star.fill").font(.system(size: 10)).foregroundStyle(BentoTint.favorites.color)
+                Text(L10n.t("Favorites")).font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.white.opacity(0.95))
+                Spacer(minLength: 0)
+            }
+            .frame(height: IslandLayout.favoritesHeaderHeight)
+            if cells > IslandLayout.favoriteColumns * maxRows {
+                ScrollView(.vertical, showsIndicators: false) { grid }
+            } else {
+                grid
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.top, IslandLayout.agentsTileTop)
+        .padding(.bottom, IslandLayout.agentsTileBottom)
+        .frame(maxWidth: .infinity)
+        .frame(height: IslandLayout.favoritesTileHeight(cells: cells, maxRows: maxRows) ?? 0, alignment: .top)
+        .bentoTile(.favorites)
+    }
+
+    private var grid: some View {
+        LazyVGrid(columns: columns, spacing: IslandLayout.favoriteChipGap) {
+            ForEach(favorites) { project in
+                FavoriteChip(project: project, isLive: live.contains(project.key), hover: hover, onOpen: { onOpen(project) })
+                    .contextMenu {
+                        Button(L10n.t("Move left")) { onMove(project, -1) }
+                        Button(L10n.t("Move right")) { onMove(project, 1) }
+                        Divider()
+                        Button(L10n.t("Remove from favorites")) { onRemove(project) }
+                    }
+            }
+            Button(action: onAdd) {
+                HStack(spacing: 5) {
+                    Image(systemName: "plus").font(.system(size: 11, weight: .bold))
+                    if favorites.isEmpty { Text(L10n.t("Pin a project")).font(.system(size: 12, weight: .medium)).lineLimit(1) }
+                }
+                .foregroundStyle(Color.white.opacity(0.9))
+                .frame(maxWidth: .infinity)
+                .frame(height: IslandLayout.favoriteChipHeight)
+                .background(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.white.opacity(0.25), style: StrokeStyle(lineWidth: 1, dash: [3, 3])))
+            }
+            .buttonStyle(.plain)
+            .help(L10n.t("Pin a project"))
+            .accessibilityLabel(L10n.t("Pin a project"))
+        }
+    }
+}
+
+struct FavoriteChip: View {
+    let project: RecentProject
+    let isLive: Bool
+    @ObservedObject var hover: RowHover
+    let onOpen: () -> Void
+
+    private var hovered: Bool { hover.sessionId == "fav:" + project.key }
+
+    var body: some View {
+        Button(action: onOpen) {
+            HStack(spacing: 6) {
+                Image(systemName: project.chatId == nil ? "folder.fill" : "bubble.left.fill")
+                    .font(.system(size: 10))
+                    .foregroundStyle(Color.white.opacity(0.75))
+                Text(project.title ?? project.project)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Color.white)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+                if isLive { Circle().fill(Color(red: 0.30, green: 0.85, blue: 0.45)).frame(width: 6, height: 6) }
+            }
+            .padding(.horizontal, 9)
+            .frame(maxWidth: .infinity)
+            .frame(height: IslandLayout.favoriteChipHeight)
+            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.white.opacity(hovered ? 0.20 : 0.11)))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .background(HoverTracker { [hover, key = "fav:" + project.key] inside in hover.set(key, inside) })
+        .help(project.title ?? project.project)
+        .accessibilityLabel((project.title ?? project.project) + (isLive ? ", " + L10n.t("running") : ""))
     }
 }
 

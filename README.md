@@ -47,13 +47,23 @@ scripts/run-bundle.sh      # .build/bundle/iSland.app, log in ~/.island/app.log
 Or from the menu: **✻ → Install Claude Code hooks…**, which explains what changes before doing anything. On a first launch with no hooks installed, iSland offers this once by itself.
 `--uninstall-hooks` (or the menu) removes only what iSland added and gives the file back unchanged.
 
-## Install from a DMG
+## Install
+
+There are two ways, and neither needs an Apple Developer account.
+
+**1. Build it yourself (recommended; no warning from macOS).** An app you build is not quarantined, so it opens without the "cannot verify the developer" prompt. You need the Command Line Tools (`xcode-select --install`).
 
 ```bash
-scripts/package.sh        # dist/iSland.app and dist/iSland-<version>.dmg
+git clone https://github.com/xenerrer/iSland.git
+cd iSland
+scripts/install.sh        # builds, installs in ~/Applications and opens it
 ```
 
-Open the DMG, drag iSland to Applications. The build is ad-hoc signed (no paid Apple account needed), so macOS asks you to approve the first launch in *System Settings → Privacy & Security → Open Anyway*. The DMG carries a bilingual `READ ME FIRST.txt` that says how.
+**2. Download the DMG** from the [Releases](../../releases) page. Open it and drag iSland to Applications. This build is ad-hoc signed, not notarized, so the first launch needs one approval: *System Settings → Privacy & Security → Open Anyway* (the DMG carries a bilingual `READ ME FIRST.txt` that says how). Check the download against the `.sha256` file on the release.
+
+**Updating.** If you built it: `scripts/update.sh` (pulls and installs again; your settings, favorites and history are kept). If you used the DMG: download the new one from Releases and replace the app.
+
+To package it yourself: `scripts/package.sh` makes `dist/iSland.app` and `dist/iSland-<version>.dmg`. Maintainers: see [docs/RELEASING.md](docs/RELEASING.md).
 
 ## How it works
 
