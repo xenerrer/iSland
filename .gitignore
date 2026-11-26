@@ -13,3 +13,6 @@ xcuserdata/
 .env
 .env.*
 sparkle_*private*
+# large mockup renders of the options that were not chosen
+docs/ui-options/option-a.png
+docs/ui-options/option-b.png
